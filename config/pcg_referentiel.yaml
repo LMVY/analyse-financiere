@@ -1,87 +1,695 @@
-# Referentiel des postes comptables francais (PCG)
-# Mapping : libelle dans le PDF -> code standard
-
 actif:
+  capital_souscrit_non_appele:
+  - capital souscrit non appele
+  - capital souscrit et appele non verse
+  - capital souscrit-appele non verse
+  frais_etablissement:
+  - frais d'etablissement
+  - frais de developpement
+  - frais d'etablissement et de developpement
+  - frais etablissement
+  - frais developpement
   immobilisations_incorporelles:
-    - "immobilisations incorporelles"
-
-  immobilisations_corporelles:
-    - "immobilisations corporelles"
-
-  immobilisations_financieres:
-    - "immobilisations financieres"
-
-  stocks:
-    - "stocks et en-cours"
-    - "stocks"
-
+  - immobilisations incorporelles
+  - immob incorporelles
+  - immob. incorporelles
+  - immo incorporelles
+  - immo. incorporelles
+  - concession brevets et droits similaires
+  - concessions brevets et droits similaires
+  - concessions brevets logiciels et droits similaires
+  - fonds commercial
+  - autres immobilisations incorporelles
+  - immobilisations incorporelles en cours
+  - avances et acomptes sur immobilisations incorporelles
+  total_immobilisations_incorporelles:
+  - total immobilisations incorporelles
+  - total immob incorporelles
+  - total immo incorporelles
+  terrains:
+  - terrains
+  constructions:
+  - constructions
+  - constructions sur sol propre
+  - constructions sur sol d'autrui
+  - installations generales agencements amenagements constructions
+  installations_techniques:
+  - installations techniques materiel et outillage
+  - installations techniques, materiel et outillage industriel
+  - installations techniques materiel et outillage industriels
+  - installations techniques materiels et outillages
+  - instal techniques materiel outillage
+  - instal tech mat outillage industriels
+  - materiel et outillage industriel
+  - materiel industriel
+  autres_immobilisations_corporelles:
+  - autres immobilisations corporelles
+  - installations generales agencements amenagements divers
+  - installations generales agencements et amenagements divers
+  - materiel de transport
+  - materiel de bureau et informatique
+  - materiel d'informatique et de bureau
+  - materiel informatique
+  - mobilier
+  - mobilier de bureau
+  - emballages recuperables
+  immobilisations_corporelles_en_cours:
+  - immobilisations corporelles en cours
+  - immobilisations en cours
+  - avances et acomptes
+  total_immobilisations_corporelles:
+  - total immobilisations corporelles
+  - total immob corporelles
+  - total immo corporelles
+  participations:
+  - participations
+  - participations evaluees par mise en equivalence
+  - participations evaluees en equivalence
+  - autres participations
+  - titres de participation
+  creances_rattachees_participations:
+  - creances rattachees a des participations
+  - creances rattachees aux participations
+  autres_titres_immobilises:
+  - autres titres immobilises
+  - autres titres immob
+  prets:
+  - prets
+  - prets et autres immobilisations financieres
+  autres_immobilisations_financieres:
+  - autres immobilisations financieres
+  total_immobilisations_financieres:
+  - total immobilisations financieres
+  - total immob financieres
+  - total immo financieres
+  actif_immobilise:
+  - actif immobilise
+  - total actif immobilise
+  - total de l'actif immobilise
+  amortissements_immobilisations_incorporelles:
+  - amortissements des immobilisations incorporelles
+  - amortissement immobilisations incorporelles
+  - amort immob incorporelles
+  - amortissements immob incorporelles
+  - amortissements immo incorporelles
+  amortissements_immobilisations_corporelles:
+  - amortissements des immobilisations corporelles
+  - amortissement immobilisations corporelles
+  - amort immob corporelles
+  - amortissements immob corporelles
+  - amortissements immo corporelles
+  depreciations_immobilisations:
+  - depreciations des immobilisations
+  - provisions pour depreciation des immobilisations
+  - depreciation des immobilisations
+  - depreciations immobilisations
+  matieres_premieres:
+  - matieres premieres
+  - matieres premieres et approvisionnements
+  - matieres premieres approvisionnements
+  - matieres premieres et autres approvisionnements
+  en_cours_production_biens:
+  - en-cours de production de biens
+  - en cours de production de biens
+  - encours de production de biens
+  en_cours_production_services:
+  - en-cours de production de services
+  - en cours de production de services
+  produits_intermediaires:
+  - produits intermediaires et finis
+  stocks_marchandises:
+  - stocks de marchandises
+  - marchandises
+  total_stocks:
+  - total stocks et en-cours
+  - stocks et en-cours
+  - total stocks
+  - stocks
+  depreciations_stocks:
+  - depreciations des stocks
+  - provisions pour depreciation des stocks
+  - depreciation des stocks et en-cours
+  - depreciations stocks et en-cours
+  avances_commandes:
+  - avances et acomptes verses sur commandes
+  - avances acomptes verses sur commandes
+  - avances et acomptes verses
   creances_clients:
-    - "creances clients"
-    - "clients"
-
+  - creances clients et comptes rattaches
+  - creances clients
+  - clients et comptes rattaches
+  - clients
+  - clients douteux ou litigieux
   autres_creances:
-    - "autres creances"
-
+  - autres creances
+  - autres creances clients
+  - creances diverses
+  - personnel et comptes rattaches
+  - securite sociale et autres organismes sociaux
+  - impots sur les benefices
+  total_creances:
+  - total creances
+  depreciations_creances:
+  - depreciations des creances
+  - provisions pour depreciation des comptes clients
+  - depreciation des creances
+  - depreciations et provisions creances
+  valeurs_mobilieres_placement:
+  - valeurs mobilieres de placement
+  - vmp
+  depreciations_vmp:
+  - depreciations des valeurs mobilieres de placement
+  - provisions pour depreciation des vmp
   disponibilites:
-    - "disponibilites"
-    - "tresorerie"
-
+  - disponibilites
+  - disponibilites et divers
+  - banque
+  - caisse
+  - tresorerie
+  - banques etablissements financiers et assimiles
+  - banques, etablissements financiers et assimiles
+  - compte courant bancaire
+  total_actif_circulant:
+  - total actif circulant
+  charges_constatees_avance:
+  - charges constatees d'avance
+  - charges constatees d avance
+  ecart_conversion_actif:
+  - ecart de conversion actif
+  - ecarts de conversion actif
+  - ecart de conversion - actif
   total_actif:
-    - "total actif"
-
+  - total actif
+  - total de l'actif
+  - total general actif
 passif:
   capital_social:
-    - "capital social"
-
-  reserves:
-    - "reserves"
-
+  - capital social
+  - capital social ou individuel
+  - capital
+  - capital social ou personnel
+  primes_emission:
+  - primes d'emission
+  - primes d'emission de fusion
+  - primes d'apport
+  - primes de fusion
+  ecarts_reevaluation:
+  - ecarts de reevaluation
+  reserve_legale:
+  - reserve legale
+  - reserves legale
+  reserves_statutaires:
+  - reserves statutaires
+  - reserves statutaires ou contractuelles
+  reserves_reglementees:
+  - reserves reglementees
+  autres_reserves:
+  - autres reserves
+  report_a_nouveau:
+  - report a nouveau
   resultat_exercice:
-    - "resultat de l'exercice"
-
+  - resultat de l'exercice
+  - resultat net
+  - resultat
+  - resultat de l'exercice (benefice ou perte)
+  - resultat net de l'exercice
+  - benefice
+  - perte
+  subventions_investissement:
+  - subventions d'investissement
+  provisions_reglementees:
+  - provisions reglementees
+  total_capitaux_propres:
+  - total des capitaux propres
+  - capitaux propres
+  - total capitaux propres
+  produits_emissions_titres:
+  - produits des emissions de titres participatifs
+  avances_conditionnees:
+  - avances conditionnees
+  total_autres_fonds_propres:
+  - total des autres fonds propres
+  provisions_risques:
+  - provisions pour risques
+  provisions_charges:
+  - provisions pour charges
+  total_provisions:
+  - total des provisions
+  emprunts_obligataires:
+  - emprunts obligataires convertibles
+  - emprunts obligataires
+  - autres emprunts obligataires
   dettes_financieres:
-    - "emprunts et dettes aupres des etablissements de credit"
-    - "emprunts"
-
+  - emprunts et dettes aupres des etablissements de credit
+  - emprunts dettes etablissements de credit
+  - emprunts etablissements de credit
+  - emprunts bancaires
+  - concours bancaires courants
+  - emprunts et dettes financieres divers
+  - dettes financieres diverses
+  avances_acomptes_recus:
+  - avances et acomptes recus sur commandes en cours
+  - avances et acomptes recus
+  total_dettes_financieres:
+  - total dettes financieres
+  - dettes financieres
   dettes_fournisseurs:
-    - "dettes fournisseurs"
-
+  - dettes fournisseurs et comptes rattaches
+  - dettes fournisseurs
+  - fournisseurs
+  - fournisseurs et comptes rattaches
   dettes_fiscales_sociales:
-    - "dettes fiscales et sociales"
-
+  - dettes fiscales et sociales
+  - personnel et comptes rattaches
+  - securite sociale et autres organismes sociaux
+  - impots sur les benefices
+  - tva payee
+  - tva a payer
+  dettes_immobilisations:
+  - dettes sur immobilisations et comptes rattaches
+  - dettes sur immobilisations
+  autres_dettes:
+  - autres dettes
+  - dettes diverses
+  produits_constates_avance:
+  - produits constates d'avance
+  ecart_conversion_passif:
+  - ecart de conversion passif
+  - ecarts de conversion passif
+  - ecart de conversion - passif
+  total_dettes:
+  - total des dettes
   total_passif:
-    - "total passif"
-
+  - total passif
+  - total du passif
+  - total general passif
+  - total general
 compte_resultat:
+  ventes_marchandises:
+  - ventes de marchandises
+  production_vendue_biens:
+  - production vendue de biens
+  - production vendue biens
+  production_vendue_services:
+  - production vendue de services
+  - production vendue services
+  - production vendue de travaux
+  - production vendue
+  - travaux
+  - services
   chiffre_affaires:
-    - "chiffre d'affaires"
-
-  achats_consommes:
-    - "achats consommes"
-
-  charges_externes:
-    - "charges externes"
-
-  charges_personnel:
-    - "charges de personnel"
-
+  - chiffre d'affaires
+  - montant net du chiffre d'affaires
+  - ca
+  - chiffre d'affaires net
+  - chiffres d'affaires net
+  - ventes de marchandises et productions vendues
+  - chiffre d affaires
+  production_stockee:
+  - production stockee
+  production_immobilisee:
+  - production immobilisee
+  subventions_exploitation:
+  - subventions d'exploitation
+  reprises_amortissements:
+  - reprises sur provisions et amortissements
+  - reprises sur amortissements et provisions
+  - transferts de charges
+  autres_produits:
+  - autres produits
+  total_produits_exploitation:
+  - total des produits d'exploitation
+  - total produits exploitation
+  achats_marchandises:
+  - achats de marchandises
+  variation_stocks_marchandises:
+  - variation de stock de marchandises
+  - variation de stocks
+  achats_matieres:
+  - achats de matieres premieres
+  - achats de matieres et autres approvisionnements
+  - achats de matieres premieres et autres approvisionnements
+  - achats matieres premieres
+  variation_stocks_matieres:
+  - variation de stock de matieres premieres
+  - variation de stock
+  autres_achats_charges_externes:
+  - autres achats et charges externes
+  - charges externes
+  - services exterieurs
+  - sous-traitance
+  - locations
+  - entretien et reparations
+  - primes d'assurances
+  - honoraires
   impots_taxes:
-    - "impots et taxes"
-
-  dotations_amortissements:
-    - "dotations aux amortissements"
-
+  - impots taxes et versements assimiles
+  - impots et taxes
+  - impots et taxes et versements assimiles
+  salaires_traitements:
+  - salaires et traitements
+  charges_sociales:
+  - charges sociales
+  - charges sociales du personnel
+  charges_personnel:
+  - charges de personnel
+  dotations_amortissements_immob:
+  - dotations aux amortissements sur immobilisations
+  - dotations aux amortissements
+  - dotations aux amortissements sur immobilisations corporelles et incorporelles
+  dotations_depreciations_immob:
+  - dotations aux depreciations sur immobilisations
+  dotations_depreciations_actif_circulant:
+  - dotations aux depreciations sur actif circulant
+  dotations_provisions_risques:
+  - dotations aux provisions pour risques et charges
+  autres_charges:
+  - autres charges
+  total_charges_exploitation:
+  - total des charges d'exploitation
+  - total charges exploitation
   resultat_exploitation:
-    - "resultat d'exploitation"
-
-  charges_financieres:
-    - "charges financieres"
-
+  - resultat d'exploitation
+  - resultat d'exploitation (i - ii)
+  - ebit
+  produits_participations:
+  - produits de participations
+  - de participations
+  produits_valeurs_mobilieres:
+  - produits d'autres valeurs mobilieres
+  - d'autres valeurs mobilieres et creances d'actif immobilise
+  autres_interets_produits:
+  - autres interets et produits assimiles
+  reprises_provisions_financieres:
+  - reprises sur provisions et depreciations
+  - transferts de charges financieres
+  differences_positives_change:
+  - differences positives de change
+  produits_cessions_vmp:
+  - produits nets sur cessions de valeurs mobilieres de placement
+  total_produits_financiers:
+  - total des produits financiers
+  - produits financiers
+  dotations_amortissements_financiers:
+  - dotations financieres aux amortissements aux depreciations et aux provisions
+  - dotations financieres
+  interets_charges_assimilees:
+  - interets et charges assimilees
+  differences_negatives_change:
+  - differences negatives de change
+  charges_cessions_vmp:
+  - charges nettes sur cessions de valeurs mobilieres de placement
+  total_charges_financieres:
+  - total des charges financieres
+  - charges financieres
+  resultat_financier:
+  - resultat financier
   resultat_courant:
-    - "resultat courant avant impots"
-
+  - resultat courant avant impots
+  - resultat courant
+  produits_exceptionnels_gestion:
+  - produits exceptionnels sur operations de gestion
+  - sur operations de gestion
+  produits_exceptionnels_capital:
+  - produits exceptionnels sur operations en capital
+  - sur operations en capital
+  reprises_provisions_exceptionnelles:
+  - reprises sur provisions et depreciations
+  - transferts de charges exceptionnelles
+  total_produits_exceptionnels:
+  - total des produits exceptionnels
+  - produits exceptionnels
+  charges_exceptionnelles_gestion:
+  - charges exceptionnelles sur operations de gestion
+  charges_exceptionnelles_capital:
+  - charges exceptionnelles sur operations en capital
+  dotations_exceptionnelles:
+  - dotations exceptionnelles aux amortissements aux depreciations et aux provisions
+  total_charges_exceptionnelles:
+  - total des charges exceptionnelles
+  - charges exceptionnelles
+  resultat_exceptionnel:
+  - resultat exceptionnel
+  participation_salaries:
+  - participation des salaries
   impots_benefices:
-    - "impots sur les benefices"
-
+  - impots sur les benefices
+  - impots sur les benefices et participation
+  - impot sur les societes
+  total_produits:
+  - total des produits
+  - total produits
+  total_charges:
+  - total des charges
+  - total charges
   resultat_net:
-    - "resultat net"
+  - resultat de l'exercice
+  - resultat net
+  - benefice ou perte
+  - resultat net comptable
+comptes_pcg:
+  capital_souscrit_non_appele:
+  - '109'
+  capital_social:
+  - '101'
+  - '108'
+  primes_emission:
+  - '104'
+  produits_emissions_titres:
+  - '103'
+  ecarts_reevaluation:
+  - '105'
+  reserve_legale:
+  - '1061'
+  reserves_statutaires:
+  - '1063'
+  reserves_reglementees:
+  - '1064'
+  autres_reserves:
+  - '1068'
+  report_a_nouveau:
+  - '110'
+  - '119'
+  resultat_exercice:
+  - '120'
+  - '129'
+  subventions_investissement:
+  - '13'
+  provisions_reglementees:
+  - '14'
+  avances_conditionnees:
+  - '168'
+  dettes_financieres:
+  - '164'
+  - '1688'
+  - '512'
+  - '519'
+  emprunts_obligataires:
+  - '161'
+  - '163'
+  provisions_risques:
+  - '151'
+  provisions_charges:
+  - '153'
+  - '154'
+  - '155'
+  - '156'
+  - '157'
+  - '158'
+  frais_etablissement:
+  - '201'
+  immobilisations_incorporelles:
+  - '203'
+  - '205'
+  - '207'
+  - '208'
+  terrains:
+  - '211'
+  - '212'
+  constructions:
+  - '213'
+  - '214'
+  installations_techniques:
+  - '215'
+  autres_immobilisations_corporelles:
+  - '218'
+  immobilisations_corporelles_en_cours:
+  - '231'
+  - '238'
+  participations:
+  - '261'
+  - '266'
+  creances_rattachees_participations:
+  - '267'
+  - '268'
+  autres_titres_immobilises:
+  - '273'
+  prets:
+  - '274'
+  autres_immobilisations_financieres:
+  - '271'
+  - '272'
+  - '275'
+  amortissements_immobilisations_incorporelles:
+  - '280'
+  amortissements_immobilisations_corporelles:
+  - '281'
+  depreciations_immobilisations:
+  - '29'
+  depreciations_stocks:
+  - '39'
+  depreciations_creances:
+  - '491'
+  - '495'
+  - '496'
+  depreciations_vmp:
+  - '590'
+  matieres_premieres:
+  - '31'
+  - '32'
+  en_cours_production_biens:
+  - '33'
+  - '34'
+  produits_intermediaires:
+  - '35'
+  stocks_marchandises:
+  - '37'
+  creances_clients:
+  - '411'
+  - '413'
+  - '416'
+  - '418'
+  autres_creances:
+  - '425'
+  - '4387'
+  - '4456'
+  - '4458'
+  - '467'
+  avances_commandes:
+  - '4091'
+  valeurs_mobilieres_placement:
+  - '503'
+  - '506'
+  - '508'
+  disponibilites:
+  - '512'
+  - '530'
+  charges_constatees_avance:
+  - '486'
+  ecart_conversion_actif:
+  - '476'
+  dettes_fournisseurs:
+  - '401'
+  - '403'
+  - '408'
+  dettes_fiscales_sociales:
+  - '421'
+  - '428'
+  - '431'
+  - '437'
+  - '444'
+  - '4455'
+  - '447'
+  dettes_immobilisations:
+  - '404'
+  - '405'
+  avances_acomptes_recus:
+  - '4191'
+  autres_dettes:
+  - '455'
+  - '468'
+  produits_constates_avance:
+  - '487'
+  ecart_conversion_passif:
+  - '477'
+  ventes_marchandises:
+  - '707'
+  production_vendue_biens:
+  - '701'
+  - '702'
+  production_vendue_services:
+  - '706'
+  production_stockee:
+  - '713'
+  production_immobilisee:
+  - '72'
+  subventions_exploitation:
+  - '74'
+  reprises_amortissements:
+  - '781'
+  - '791'
+  autres_produits:
+  - '75'
+  total_produits_financiers:
+  - '76'
+  total_produits_exceptionnels:
+  - '77'
+  achats_marchandises:
+  - '607'
+  variation_stocks_marchandises:
+  - '6037'
+  achats_matieres:
+  - '601'
+  - '602'
+  variation_stocks_matieres:
+  - '6031'
+  - '6032'
+  autres_achats_charges_externes:
+  - '604'
+  - '605'
+  - '606'
+  - '61'
+  - '62'
+  impots_taxes:
+  - '63'
+  salaires_traitements:
+  - '641'
+  charges_sociales:
+  - '645'
+  - '646'
+  - '647'
+  - '648'
+  dotations_amortissements_immob:
+  - '6811'
+  - '6812'
+  dotations_depreciations_immob:
+  - '6816'
+  dotations_depreciations_actif_circulant:
+  - '6817'
+  dotations_provisions_risques:
+  - '6815'
+  autres_charges:
+  - '65'
+  total_charges_financieres:
+  - '66'
+  total_charges_exceptionnelles:
+  - '67'
+  produits_participations:
+  - '761'
+  - '762'
+  produits_valeurs_mobilieres:
+  - '764'
+  autres_interets_produits:
+  - '768'
+  differences_positives_change:
+  - '766'
+  produits_cessions_vmp:
+  - '767'
+  interets_charges_assimilees:
+  - '661'
+  differences_negatives_change:
+  - '666'
+  charges_cessions_vmp:
+  - '667'
+  produits_exceptionnels_gestion:
+  - '771'
+  produits_exceptionnels_capital:
+  - '775'
+  charges_exceptionnelles_gestion:
+  - '671'
+  charges_exceptionnelles_capital:
+  - '675'
+  participation_salaries:
+  - '691'
+  impots_benefices:
+  - '695'
