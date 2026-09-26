@@ -38,3 +38,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Fichiers extraits (a regenerer)
+data/processed/*.md
+data/processed/*.txt
