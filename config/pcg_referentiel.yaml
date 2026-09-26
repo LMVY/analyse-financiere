@@ -1,0 +1,87 @@
+# Referentiel des postes comptables francais (PCG)
+# Mapping : libelle dans le PDF -> code standard
+
+actif:
+  immobilisations_incorporelles:
+    - "immobilisations incorporelles"
+
+  immobilisations_corporelles:
+    - "immobilisations corporelles"
+
+  immobilisations_financieres:
+    - "immobilisations financieres"
+
+  stocks:
+    - "stocks et en-cours"
+    - "stocks"
+
+  creances_clients:
+    - "creances clients"
+    - "clients"
+
+  autres_creances:
+    - "autres creances"
+
+  disponibilites:
+    - "disponibilites"
+    - "tresorerie"
+
+  total_actif:
+    - "total actif"
+
+passif:
+  capital_social:
+    - "capital social"
+
+  reserves:
+    - "reserves"
+
+  resultat_exercice:
+    - "resultat de l'exercice"
+
+  dettes_financieres:
+    - "emprunts et dettes aupres des etablissements de credit"
+    - "emprunts"
+
+  dettes_fournisseurs:
+    - "dettes fournisseurs"
+
+  dettes_fiscales_sociales:
+    - "dettes fiscales et sociales"
+
+  total_passif:
+    - "total passif"
+
+compte_resultat:
+  chiffre_affaires:
+    - "chiffre d'affaires"
+
+  achats_consommes:
+    - "achats consommes"
+
+  charges_externes:
+    - "charges externes"
+
+  charges_personnel:
+    - "charges de personnel"
+
+  impots_taxes:
+    - "impots et taxes"
+
+  dotations_amortissements:
+    - "dotations aux amortissements"
+
+  resultat_exploitation:
+    - "resultat d'exploitation"
+
+  charges_financieres:
+    - "charges financieres"
+
+  resultat_courant:
+    - "resultat courant avant impots"
+
+  impots_benefices:
+    - "impots sur les benefices"
+
+  resultat_net:
+    - "resultat net"
