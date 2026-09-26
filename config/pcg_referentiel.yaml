@@ -182,6 +182,16 @@ actif:
   - total actif
   - total de l'actif
   - total general actif
+  immobilisations_corporelles:
+  - immobilisations corporelles
+  - immob corporelles
+  - immob. corporelles
+  - immo corporelles
+  - immo. corporelles
+  immobilisations_financieres:
+  - immobilisations financieres
+  - immob financieres
+  - immo financieres
 passif:
   capital_social:
   - capital social
@@ -284,6 +294,8 @@ passif:
   - total du passif
   - total general passif
   - total general
+  capitaux_propres:
+  - capitaux propres
 compte_resultat:
   ventes_marchandises:
   - ventes de marchandises
