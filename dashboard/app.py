@@ -115,6 +115,42 @@ if bilans and comptes:
                 # Calculer les ratios
                 r = Ratios(agregats)
                 ratios = r.compute_all()
+
+                # === AJOUT : Calcul de la croissance (N vs N-1) ===
+                if len(bilans_data) >= 2:
+                    data_n1 = bilans_data[1]["data"]
+
+                    # Fusionner les CR avec les bilans
+                    if len(bilans_data) >= 2:
+                        cr_n = bilans_data[0]["data"].get("compte_resultat", {})
+                        cr_n1 = bilans_data[1]["data"].get("compte_resultat", {})
+
+                    # Calculer les croissances
+                    def _growth(val_n, val_n1):
+                        if val_n1 and val_n1 != 0 and val_n is not None:
+                            return (val_n - val_n1) / abs(val_n1) * 100
+                        return None
+
+                    ca_n = agregats.get("chiffre_affaires", 0)
+                    rn_n = agregats.get("resultat_net", 0)
+
+                    agg_n1 = Agregats(data_n1)
+                    agregats_n1 = agg_n1.compute_all()
+                    ca_n1 = agregats_n1.get("chiffre_affaires", 0)
+                    rn_n1 = agregats_n1.get("resultat_net", 0)
+
+                    ratios["croissance"] = {
+                        "croissance_ca": _growth(ca_n, ca_n1),
+                        "croissance_resultat_net": _growth(rn_n, rn_n1),
+                    }
+
+                    st.session_state.agregats_n1 = agregats_n1
+                else:
+                    ratios["croissance"] = {
+                        "croissance_ca": None,
+                        "croissance_resultat_net": None,
+                    }
+
                 st.session_state.ratios = ratios
 
                 st.session_state.analyse_faite = True
@@ -188,17 +224,18 @@ if st.session_state.analyse_faite and st.session_state.ratios:
             )
 
     total = sum(poids_custom.values())
-    if abs(total - 1.0) > 0.01:
-        st.warning(f"⚠️ Total des poids : {total:.2f} (doit etre egal a 1.00)")
-    else:
-        st.success(f"✅ Total des poids : {total:.2f}")
+    if total > 0:
+        st.info(f"Total des poids : {total:.2f} (normalisation automatique)")
 
-    # --- SCORE PERSONNALISE ---
-    if abs(total - 1.0) <= 0.01:
+    # --- SCORE PERSONNALISE (toujours affiche) ---
+    if total > 0:
+        # Normaliser les poids pour que le total = 1.00
+        poids_normalises = {cat: p / total for cat, p in poids_custom.items()}
+
         st.markdown("---")
         st.header("5. Score personnalise")
 
-        scorer_custom = Scorer(ratios, profil=profil_choisi, poids_custom=poids_custom)
+        scorer_custom = Scorer(ratios, profil=profil_choisi, poids_custom=poids_normalises)
         result_custom = scorer_custom.compute_all()
         rec_custom = scorer_custom.get_recommandation(result_custom["score_global"])
 
@@ -210,3 +247,8 @@ if st.session_state.analyse_faite and st.session_state.ratios:
             st.metric("Score personnalise", f"{result_custom['score_global']}/100", delta=f"{delta:+.1f}")
 
         st.info(f"**{rec_custom}**")
+
+        # Afficher les poids normalises
+        with st.expander("Voir les poids normalises"):
+            for cat, poids in poids_normalises.items():
+                st.write(f"  {cat:25s} : {poids:.3f}")
