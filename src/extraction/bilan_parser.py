@@ -1,56 +1,18 @@
-"""Parser unifie : extrait et structure les postes comptables d'un PDF.
-
-Combine :
-- Detection auto du type de PDF (natif/scanne)
-- Extraction (pdfplumber ou OCR)
-- Detection des sections (Actif, Passif, Compte de resultat)
-- Extraction des lignes (libelle + montants)
-- Normalisation PCG (avec fuzzy matching)
-"""
-import re
+"""Parser unifie : extrait et structure les postes comptables d'un PDF."""
 from pathlib import Path
 from typing import Optional
 
-from src.extraction.auto_extractor import AutoExtractor
+from src.extraction.ocr_extractor import OCRExtractor
+from src.extraction.pdfplumber_extractor import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
+import pdfplumber
 
 
-# Mots-cles pour detecter les sections
 SECTION_KEYWORDS = {
-    "actif": [
-        "bilan actif",
-        "actif",
-        "actif immobilise",
-    ],
-    "passif": [
-        "bilan passif",
-        "passif",
-        "capitaux propres",
-    ],
-    "compte_resultat": [
-        "compte de resultat",
-        "compte de resultats",
-        "compte de produits et charges",
-    ],
+    "actif": ["bilan actif", "actif", "actif immobilise"],
+    "passif": ["bilan passif", "passif", "capitaux propres"],
+    "compte_resultat": ["compte de resultat", "compte de resultats", "compte de produits et charges"],
 }
-
-# Mots-cles a ignorer (en-tetes, pieds de page)
-IGNORE_PATTERNS = [
-    r"^page\s+\d+",
-    r"^exercice\s+clos",
-    r"^au\s+\d{2}/\d{2}/\d{4}",
-    r"^devise",
-    r"^en\s+euros?",
-    r"^en\s+milliers",
-    r"^\d{2}/\d{2}/\d{4}$",
-    r"^poste$",
-    r"^rubriques?$",
-    r"^brut$",
-    r"^amort",
-    r"^net$",
-    r"^montant$",
-    r"^\d{4}$",  # annee seule
-]
 
 
 class BilanParser:
@@ -62,23 +24,38 @@ class BilanParser:
             raise FileNotFoundError(f"PDF non trouve : {pdf_path}")
         self.normalizer = PCGNormalizer(referentiel_path)
 
-    def parse(self, force_ocr: bool = False) -> dict:
+    def _detect_type(self) -> str:
+        """Detecte si le PDF est natif ou scanne."""
+        with pdfplumber.open(self.pdf_path) as pdf:
+            total_chars = sum(len(p.chars) for p in pdf.pages)
+            total_pages = len(pdf.pages)
+            avg = total_chars / total_pages if total_pages else 0
+            if avg >= 50:
+                return "native"
+            return "scanned"
+
+    def parse(self, force_ocr: bool = False, dpi: int = 300) -> dict:
         """Parse le PDF et retourne un dict structure."""
-        # 1. Extraire le texte
-        print(f"Extraction du texte...")
-        extractor = AutoExtractor(self.pdf_path)
-        result = extractor.extract(force_ocr=force_ocr)
-        texte = result["texte"]
-        print(f"  Type : {result['type']}")
-        print(f"  Taille : {len(texte):,} caracteres")
+        print("Extraction du texte...")
+        pdf_type = "scanned" if force_ocr else self._detect_type()
+        print(f"  Type : {pdf_type}")
         print()
 
-        # 2. Parser les lignes
-        print(f"Parsing des postes...")
-        lignes = texte.split("\n")
-        data = self._parse_lines(lignes)
+        if pdf_type == "native":
+            print("  Extraction pdfplumber (mots avec positions)...")
+            extractor = PDFPlumberExtractor(self.pdf_path)
+            rows = extractor.extract_rows()
+        else:
+            print("  Extraction OCR (mots avec positions)...")
+            extractor = OCRExtractor(self.pdf_path)
+            rows = extractor.extract_rows(dpi=dpi)
 
-        # 3. Stats
+        print(f"  {len(rows)} lignes extraites")
+        print()
+
+        print("Parsing des postes...")
+        data = self._parse_rows(rows)
+
         total = sum(len(data[s]) for s in data)
         print(f"  Actif : {len(data['actif'])} postes")
         print(f"  Passif : {len(data['passif'])} postes")
@@ -87,43 +64,35 @@ class BilanParser:
 
         return data
 
-    def _parse_lines(self, lignes: list[str]) -> dict:
-        """Parse les lignes et remplit les 3 sections."""
+    def _parse_rows(self, rows: list) -> dict:
         result = {"actif": {}, "passif": {}, "compte_resultat": {}}
         section_courante = None
-        stats = {"ignorees": 0, "non_matchees": 0, "ok": 0}
 
-        for ligne in lignes:
-            ligne_clean = ligne.strip()
-            if not ligne_clean:
+        for row in rows:
+            if not row:
+                continue
+            ligne = " ".join(row).strip()
+            if not ligne:
                 continue
 
-            # Detecter les changements de section
-            nouvelle_section = self._detect_section(ligne_clean)
-            if nouvelle_section:
-                section_courante = nouvelle_section
+            nouvelle = self._detect_section(ligne)
+            if nouvelle:
+                section_courante = nouvelle
                 continue
 
-            # Ignorer si pas dans une section
             if section_courante is None:
                 continue
 
-            # Ignorer les en-tetes
-            if self._should_ignore(ligne_clean):
-                stats["ignorees"] += 1
+            if self._should_skip(row):
                 continue
 
-            # Extraire libelle + montants
-            parsed = self._parse_ligne_comptable(ligne_clean)
+            parsed = self._parse_row_comptable(row)
             if not parsed:
-                stats["ignorees"] += 1
                 continue
 
             libelle, montants = parsed
-
-            # Normaliser via PCG
             code_std = self.normalizer.normalize_label(
-                libelle, section_hint=section_courante
+                libelle, section_hint=section_courante, seuil=92.0
             )
 
             if code_std:
@@ -133,78 +102,63 @@ class BilanParser:
                     "score": code_std["score"],
                     "methode": code_std["methode"],
                 }
-                stats["ok"] += 1
-            else:
-                stats["non_matchees"] += 1
 
         return result
 
     def _detect_section(self, ligne: str) -> Optional[str]:
-        """Detecte si la ligne est un titre de section."""
         norm = normalize_text(ligne)
-        # Ne pas confondre avec "total actif" ou "actif immobilise"
         if "total" in norm:
             return None
-
         for section, keywords in SECTION_KEYWORDS.items():
             for kw in keywords:
                 if norm == kw or norm.startswith(kw + " "):
-                    # Eviter les faux positifs
                     if section == "actif" and "actif immobilise" in norm:
                         continue
                     return section
         return None
 
-    def _should_ignore(self, ligne: str) -> bool:
-        """Detecte si la ligne doit etre ignoree."""
-        norm = normalize_text(ligne)
-        if not norm:
+    def _should_skip(self, row: list) -> bool:
+        if len(row) < 2:
             return True
-        # Ignorer les lignes courtes sans chiffres
-        if len(norm) < 3:
+        if not row[0].strip():
+            return True
+        has_amount = False
+        for cell in row[1:]:
+            if self.normalizer.parse_amount(cell) is not None:
+                has_amount = True
+                break
+        if not has_amount:
+            return True
+        norm = normalize_text(" ".join(row))
+        skip_keywords = ["rubriques", "poste", "montant"]
+        if any(kw in norm for kw in skip_keywords) and "total" not in norm:
             return True
         return False
 
-    def _parse_ligne_comptable(self, ligne: str) -> Optional[tuple]:
-        """Separe le libelle des montants.
-        
-        Gere plusieurs formats :
-        - "Chiffre d'affaires 800 000 720 000"
-        - "Chiffre d'affaires    800 000,00    720 000,00"
-        - "Immobilisations corporelles    250 000    230 000"
-        """
-        # Pattern : libelle suivi de 1, 2 ou 3 nombres
-        # Un nombre = chiffres avec separateurs espaces/points/virgules
-        pattern = re.compile(
-            r"^(.+?)\s+"
-            r"(\d[\d\s]*(?:[.,]\d+)?)"
-            r"(?:\s+(\d[\d\s]*(?:[.,]\d+)?))?"
-            r"(?:\s+(\d[\d\s]*(?:[.,]\d+)?))?"
-            r"\s*$"
-        )
-
-        match = pattern.match(ligne)
-        if not match:
+    def _parse_row_comptable(self, row: list) -> Optional[tuple]:
+        libelle = row[0].strip()
+        if len(libelle) < 3:
             return None
 
-        libelle = match.group(1).strip()
-
-        # Ignorer si le libelle est trop court ou trop long
-        if len(libelle) < 3 or len(libelle) > 150:
-            return None
-
-        montants = {}
-        annees = ["N", "N-1", "N-2"]
-        for i, group in enumerate([match.group(2), match.group(3), match.group(4)]):
-            if group:
-                val = self.normalizer.parse_amount(group)
-                if val is not None:
-                    montants[annees[i]] = val
+        montants = []
+        for cell in row[1:]:
+            val = self.normalizer.parse_amount(cell)
+            if val is not None:
+                montants.append(val)
 
         if not montants:
             return None
 
-        return libelle, montants
+        montants = [m for m in montants if abs(m) < 1e9]
+        if not montants:
+            return None
+
+        colonnes = ["brut", "amort", "net", "net_n1", "net_n2", "autre"]
+        montants_dict = {}
+        for i, val in enumerate(montants[:6]):
+            montants_dict[colonnes[i]] = val
+
+        return libelle, montants_dict
 
 
 if __name__ == "__main__":
@@ -219,7 +173,7 @@ if __name__ == "__main__":
     print()
 
     parser = BilanParser(pdf_path)
-    data = parser.parse()
+    data = parser.parse(force_ocr=True)
 
     print()
     print("=" * 60)
