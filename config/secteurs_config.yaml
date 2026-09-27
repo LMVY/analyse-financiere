@@ -1,0 +1,360 @@
+# ============================================================
+# REFERENTIEL SECTORIEL - Ratios par secteur d'activite
+# ============================================================
+# Sources :
+#   - INSEE (Esane 2023) : taux de marge par secteur
+#   - Banque de France (FIBEN) : DSO, DPO, gearing, autonomie
+#   - CreditSafe : delais de paiement sectoriels
+#
+# Pour chaque secteur :
+#   - code_naf_prefix : prefixes NAF/APE correspondants
+#   - ratios : mediane + quartiles (Q1, Q3) pour chaque ratio
+#   - ratios_desactives : ratios non pertinents pour ce secteur
+#
+# UTILISATION :
+#   Le scoring compare la valeur de l'entreprise
+#   a la distribution sectorielle (Q1, mediane, Q3)
+# ============================================================
+
+industrie:
+  label: Industrie
+  code_naf_prefix:
+  - C
+  ratios:
+    marge_brute:
+      mediane: 30
+      q1: 20
+      q3: 45
+    marge_ebitda:
+      mediane: 12
+      q1: 7
+      q3: 18
+    marge_nette:
+      mediane: 4
+      q1: 2
+      q3: 7
+    roe:
+      mediane: 9
+      q1: 4
+      q3: 15
+    dso:
+      mediane: 55
+      q1: 40
+      q3: 75
+    dpo:
+      mediane: 60
+      q1: 45
+      q3: 80
+    dsi:
+      mediane: 60
+      q1: 35
+      q3: 95
+    gearing:
+      mediane: 80
+      q1: 45
+      q3: 130
+    autonomie_financiere:
+      mediane: 35
+      q1: 22
+      q3: 50
+  ratios_desactives: []
+construction:
+  label: Construction / BTP
+  code_naf_prefix:
+  - F
+  ratios:
+    marge_brute:
+      mediane: 20
+      q1: 12
+      q3: 32
+    marge_ebitda:
+      mediane: 7
+      q1: 4
+      q3: 12
+    marge_nette:
+      mediane: 2.5
+      q1: 1
+      q3: 5
+    roe:
+      mediane: 7
+      q1: 3
+      q3: 13
+    dso:
+      mediane: 106
+      q1: 80
+      q3: 140
+    dpo:
+      mediane: 75
+      q1: 55
+      q3: 100
+    dsi:
+      mediane: 15
+      q1: 5
+      q3: 35
+    gearing:
+      mediane: 90
+      q1: 50
+      q3: 150
+    autonomie_financiere:
+      mediane: 28
+      q1: 15
+      q3: 42
+  ratios_desactives: []
+commerce:
+  label: Commerce
+  code_naf_prefix:
+  - G
+  ratios:
+    marge_brute:
+      mediane: 30
+      q1: 18
+      q3: 45
+    marge_ebitda:
+      mediane: 6
+      q1: 3
+      q3: 11
+    marge_nette:
+      mediane: 2
+      q1: 0.5
+      q3: 4
+    roe:
+      mediane: 8
+      q1: 3
+      q3: 15
+    dso:
+      mediane: 35
+      q1: 20
+      q3: 55
+    dpo:
+      mediane: 55
+      q1: 35
+      q3: 75
+    dsi:
+      mediane: 70
+      q1: 40
+      q3: 110
+    gearing:
+      mediane: 70
+      q1: 35
+      q3: 120
+    autonomie_financiere:
+      mediane: 38
+      q1: 25
+      q3: 55
+  ratios_desactives: []
+transport:
+  label: Transports et entreposage
+  code_naf_prefix:
+  - H
+  ratios:
+    marge_brute:
+      mediane: 27
+      q1: 16
+      q3: 40
+    marge_ebitda:
+      mediane: 15
+      q1: 9
+      q3: 22
+    marge_nette:
+      mediane: 3
+      q1: 1
+      q3: 6
+    roe:
+      mediane: 8
+      q1: 3
+      q3: 14
+    dso:
+      mediane: 50
+      q1: 35
+      q3: 70
+    dpo:
+      mediane: 50
+      q1: 35
+      q3: 70
+    dsi:
+      mediane: 10
+      q1: 3
+      q3: 25
+    gearing:
+      mediane: 110
+      q1: 60
+      q3: 180
+    autonomie_financiere:
+      mediane: 30
+      q1: 18
+      q3: 45
+  ratios_desactives: []
+services:
+  label: Services aux entreprises
+  code_naf_prefix:
+  - M
+  - N
+  ratios:
+    marge_brute:
+      mediane: 35
+      q1: 22
+      q3: 55
+    marge_ebitda:
+      mediane: 10
+      q1: 5
+      q3: 18
+    marge_nette:
+      mediane: 4
+      q1: 1.5
+      q3: 8
+    roe:
+      mediane: 10
+      q1: 4
+      q3: 20
+    dso:
+      mediane: 65
+      q1: 45
+      q3: 90
+    dpo:
+      mediane: 45
+      q1: 30
+      q3: 65
+    dsi:
+      mediane: 0
+      q1: 0
+      q3: 0
+    gearing:
+      mediane: 40
+      q1: 15
+      q3: 80
+    autonomie_financiere:
+      mediane: 45
+      q1: 30
+      q3: 65
+  ratios_desactives:
+  - dsi
+  - rotation_stocks
+hotellerie_restauration:
+  label: Hébergement et restauration
+  code_naf_prefix:
+  - I
+  ratios:
+    marge_brute:
+      mediane: 65
+      q1: 50
+      q3: 78
+    marge_ebitda:
+      mediane: 12
+      q1: 6
+      q3: 20
+    marge_nette:
+      mediane: 3
+      q1: 0.5
+      q3: 7
+    roe:
+      mediane: 6
+      q1: 2
+      q3: 12
+    dso:
+      mediane: 15
+      q1: 5
+      q3: 30
+    dpo:
+      mediane: 55
+      q1: 40
+      q3: 75
+    dsi:
+      mediane: 12
+      q1: 5
+      q3: 25
+    gearing:
+      mediane: 120
+      q1: 70
+      q3: 200
+    autonomie_financiere:
+      mediane: 25
+      q1: 12
+      q3: 40
+  ratios_desactives: []
+information_communication:
+  label: Information et communication
+  code_naf_prefix:
+  - J
+  ratios:
+    marge_brute:
+      mediane: 45
+      q1: 30
+      q3: 65
+    marge_ebitda:
+      mediane: 15
+      q1: 8
+      q3: 25
+    marge_nette:
+      mediane: 5
+      q1: 2
+      q3: 12
+    roe:
+      mediane: 10
+      q1: 4
+      q3: 20
+    dso:
+      mediane: 60
+      q1: 40
+      q3: 85
+    dpo:
+      mediane: 45
+      q1: 30
+      q3: 65
+    dsi:
+      mediane: 5
+      q1: 0
+      q3: 15
+    gearing:
+      mediane: 45
+      q1: 20
+      q3: 90
+    autonomie_financiere:
+      mediane: 42
+      q1: 28
+      q3: 60
+  ratios_desactives: []
+immobilier:
+  label: Immobilier
+  code_naf_prefix:
+  - L
+  ratios:
+    marge_brute:
+      mediane: 55
+      q1: 40
+      q3: 70
+    marge_ebitda:
+      mediane: 45
+      q1: 30
+      q3: 60
+    marge_nette:
+      mediane: 12
+      q1: 5
+      q3: 25
+    roe:
+      mediane: 8
+      q1: 3
+      q3: 15
+    dso:
+      mediane: 25
+      q1: 10
+      q3: 45
+    dpo:
+      mediane: 40
+      q1: 25
+      q3: 60
+    dsi:
+      mediane: 0
+      q1: 0
+      q3: 0
+    gearing:
+      mediane: 180
+      q1: 100
+      q3: 280
+    autonomie_financiere:
+      mediane: 20
+      q1: 10
+      q3: 35
+  ratios_desactives:
+  - dsi
+  - rotation_stocks
+  - marge_brute

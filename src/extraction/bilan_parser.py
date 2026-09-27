@@ -8,6 +8,7 @@ from typing import Optional
 from src.extraction.ocr_extractor import OCRExtractor
 from src.extraction.pdfplumber_extractor import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
+from src.extraction.dgfip_parser import extract_dgfip_values, detect_dgfip_format
 from src.analysis.selector import ColumnSelector
 import pdfplumber
 
@@ -84,6 +85,26 @@ class BilanParser:
         return data
 
     def parse_simple(self, force_ocr: bool = False, dpi: int = 300) -> dict:
+        """Parse et retourne les valeurs par poste.
+
+        Detecte automatiquement le format :
+        - DGFiP (liasse fiscale) -> dgfip_parser
+        - Standard -> pdfplumber/OCR
+        """
+        # 1. Verifier si c'est du DGFiP
+        if detect_dgfip_format(str(self.pdf_path)):
+            print("  Format DGFiP detecte -> parser DGFiP")
+            dgfip_data = extract_dgfip_values(str(self.pdf_path))
+            # Garder seulement les valeurs N (sans _n1)
+            result = {}
+            for section in ["actif", "passif", "compte_resultat"]:
+                result[section] = {
+                    k: v for k, v in dgfip_data.get(section, {}).items()
+                    if not k.endswith("_n1")
+                }
+            return result
+
+        # 2. Sinon, parser classique
         data = self.parse(force_ocr=force_ocr, dpi=dpi)
         result = {}
         for section in ["actif", "passif", "compte_resultat"]:
