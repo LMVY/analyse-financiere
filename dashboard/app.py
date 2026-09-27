@@ -2,17 +2,16 @@
 import sys
 from pathlib import Path
 
-# Ajouter la racine du projet au PYTHONPATH
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 import streamlit as st
 import tempfile
+import pandas as pd
 
 from src.extraction.bilan_parser import BilanParser
 from src.analysis.agregats import Agregats
 from src.analysis.ratios import Ratios
-from src.analysis.multi_year import MultiYearData, GrowthCalculator
 from src.scoring.score import Scorer, PROFILS
 
 
@@ -23,24 +22,24 @@ st.set_page_config(
 )
 
 st.title("📊 Analyse Financiere d'Entreprise")
-st.markdown("Deposez 2 a 5 bilans et 2 a 5 comptes de resultat pour obtenir une analyse complete.")
+st.markdown("Deposez 2 a 5 bilans + 2 a 5 comptes de resultat pour obtenir une analyse complete.")
 
 
 # ============================================================
 # ETAT DE LA SESSION
 # ============================================================
-if "data_n" not in st.session_state:
-    st.session_state.data_n = None
-if "agregats" not in st.session_state:
-    st.session_state.agregats = None
+if "result" not in st.session_state:
+    st.session_state.result = None
 if "ratios" not in st.session_state:
     st.session_state.ratios = None
+if "agregats" not in st.session_state:
+    st.session_state.agregats = None
 if "analyse_faite" not in st.session_state:
     st.session_state.analyse_faite = False
 
 
 # ============================================================
-# SECTION 1 : UPLOAD DES PDFs
+# SECTION 1 : UPLOAD
 # ============================================================
 st.header("1. Chargement des documents")
 
@@ -50,21 +49,16 @@ with col1:
     st.subheader("Bilan (2 a 5 PDFs)")
     bilans = st.file_uploader(
         "Deposez les bilans (N, N-1, ...)",
-        type=["pdf"],
-        accept_multiple_files=True,
-        key="bilans",
+        type=["pdf"], accept_multiple_files=True, key="bilans",
     )
 
 with col2:
     st.subheader("Compte de resultat (2 a 5 PDFs)")
     comptes = st.file_uploader(
         "Deposez les comptes de resultat (N, N-1, ...)",
-        type=["pdf"],
-        accept_multiple_files=True,
-        key="comptes",
+        type=["pdf"], accept_multiple_files=True, key="comptes",
     )
 
-# Verification
 if bilans and comptes:
     if len(bilans) < 2:
         st.warning(f"⚠️ Il faut au moins 2 bilans (vous en avez {len(bilans)})")
@@ -74,86 +68,74 @@ if bilans and comptes:
         st.success(f"✅ {len(bilans)} bilans + {len(comptes)} comptes de resultat charges")
 
         if st.button("🚀 Lancer l'analyse", type="primary"):
-            with st.spinner("Analyse en cours... (peut prendre 2-3 minutes)"):
+            with st.spinner("Analyse en cours..."):
                 progress = st.progress(0)
                 status = st.empty()
-
-                # Sauvegarder les fichiers uploades dans /tmp
                 tmpdir = Path(tempfile.mkdtemp())
 
-                # Parser chaque bilan
+                # Parser les bilans (tries par nom desc)
+                bilans_tries = sorted(bilans, key=lambda f: f.name, reverse=True)
+                comptes_tries = sorted(comptes, key=lambda f: f.name, reverse=True)
+
                 bilans_data = []
-                for i, pdf in enumerate(sorted(bilans, key=lambda f: f.name, reverse=True)):
-                    status.text(f"Parsing bilan {i+1}/{len(bilans)} : {pdf.name}")
-                    pdf_path = tmpdir / f"bilan_{i}.pdf"
-                    pdf_path.write_bytes(pdf.read())
-                    parser = BilanParser(str(pdf_path))
+                for i, pdf in enumerate(bilans_tries):
+                    status.text(f"Parsing bilan {i+1}/{len(bilans_tries)} : {pdf.name}")
+                    p = tmpdir / f"bilan_{i}.pdf"
+                    p.write_bytes(pdf.read())
+                    parser = BilanParser(str(p))
                     data = parser.parse_simple(force_ocr=False)
-                    bilans_data.append({"annee": f"N-{i}" if i > 0 else "N", "data": data})
-                    progress.progress((i + 1) / (len(bilans) + len(comptes)))
+                    bilans_data.append(data)
+                    progress.progress((i + 1) / (len(bilans_tries) + len(comptes_tries)))
 
-                # Parser chaque compte de resultat
-                for i, pdf in enumerate(sorted(comptes, key=lambda f: f.name, reverse=True)):
-                    status.text(f"Parsing CR {i+1}/{len(comptes)} : {pdf.name}")
-                    pdf_path = tmpdir / f"cr_{i}.pdf"
-                    pdf_path.write_bytes(pdf.read())
-                    parser = BilanParser(str(pdf_path))
+                # Parser les CR et fusionner
+                for i, pdf in enumerate(comptes_tries):
+                    status.text(f"Parsing CR {i+1}/{len(comptes_tries)} : {pdf.name}")
+                    p = tmpdir / f"cr_{i}.pdf"
+                    p.write_bytes(pdf.read())
+                    parser = BilanParser(str(p))
                     data = parser.parse_simple(force_ocr=False)
-                    # Fusionner avec le bilan correspondant
                     if i < len(bilans_data):
-                        bilans_data[i]["data"]["compte_resultat"] = data.get("compte_resultat", {})
-                    progress.progress((len(bilans) + i + 1) / (len(bilans) + len(comptes)))
+                        bilans_data[i]["compte_resultat"] = data.get("compte_resultat", {})
+                    progress.progress((len(bilans_tries) + i + 1) / (len(bilans_tries) + len(comptes_tries)))
 
-                # Calculer les agregats sur le dernier exercice
-                data_n = bilans_data[0]["data"]
-                st.session_state.data_n = data_n
+                # Agregats N
+                data_n = bilans_data[0]
+                agg_n = Agregats(data_n)
+                agregats_n = agg_n.compute_all()
 
-                agg = Agregats(data_n)
-                agregats = agg.compute_all()
-                st.session_state.agregats = agregats
-
-                # Calculer les ratios
-                r = Ratios(agregats)
+                # Ratios N
+                r = Ratios(agregats_n)
                 ratios = r.compute_all()
 
-                # === AJOUT : Calcul de la croissance (N vs N-1) ===
+                # Croissance N vs N-1
                 if len(bilans_data) >= 2:
-                    data_n1 = bilans_data[1]["data"]
-
-                    # Fusionner les CR avec les bilans
-                    if len(bilans_data) >= 2:
-                        cr_n = bilans_data[0]["data"].get("compte_resultat", {})
-                        cr_n1 = bilans_data[1]["data"].get("compte_resultat", {})
-
-                    # Calculer les croissances
-                    def _growth(val_n, val_n1):
-                        if val_n1 and val_n1 != 0 and val_n is not None:
-                            return (val_n - val_n1) / abs(val_n1) * 100
-                        return None
-
-                    ca_n = agregats.get("chiffre_affaires", 0)
-                    rn_n = agregats.get("resultat_net", 0)
-
+                    data_n1 = bilans_data[1]
                     agg_n1 = Agregats(data_n1)
                     agregats_n1 = agg_n1.compute_all()
-                    ca_n1 = agregats_n1.get("chiffre_affaires", 0)
-                    rn_n1 = agregats_n1.get("resultat_net", 0)
+
+                    def _growth(v_n, v_n1):
+                        if v_n1 and v_n1 != 0 and v_n is not None:
+                            return (v_n - v_n1) / abs(v_n1) * 100
+                        return None
 
                     ratios["croissance"] = {
-                        "croissance_ca": _growth(ca_n, ca_n1),
-                        "croissance_resultat_net": _growth(rn_n, rn_n1),
+                        "croissance_ca": _growth(agregats_n.get("chiffre_affaires", 0), agregats_n1.get("chiffre_affaires", 0)),
+                        "croissance_resultat_net": _growth(agregats_n.get("resultat_net", 0), agregats_n1.get("resultat_net", 0)),
+                        "croissance_ebitda": _growth(agregats_n.get("ebitda", 0), agregats_n1.get("ebitda", 0)),
+                        "croissance_capitaux_propres": _growth(agregats_n.get("capitaux_propres", 0), agregats_n1.get("capitaux_propres", 0)),
                     }
-
-                    st.session_state.agregats_n1 = agregats_n1
                 else:
-                    ratios["croissance"] = {
-                        "croissance_ca": None,
-                        "croissance_resultat_net": None,
-                    }
+                    ratios["croissance"] = {}
 
+                # Scorer
+                scorer = Scorer(ratios, profil="moyen_terme")
+                result = scorer.compute_all()
+
+                st.session_state.result = result
                 st.session_state.ratios = ratios
-
+                st.session_state.agregats = agregats_n
                 st.session_state.analyse_faite = True
+
                 status.text("✅ Analyse terminee")
                 progress.progress(1.0)
                 st.rerun()
@@ -162,10 +144,11 @@ else:
 
 
 # ============================================================
-# SECTION 2 : RESULTATS (si analyse faite)
+# SECTION 2 : RESULTATS
 # ============================================================
-if st.session_state.analyse_faite and st.session_state.ratios:
+if st.session_state.analyse_faite and st.session_state.result:
 
+    result = st.session_state.result
     ratios = st.session_state.ratios
     agregats = st.session_state.agregats
 
@@ -179,40 +162,88 @@ if st.session_state.analyse_faite and st.session_state.ratios:
     col3.metric("Resultat net", f"{agregats.get('resultat_net', 0):,.0f} €")
     col4.metric("Capitaux propres", f"{agregats.get('capitaux_propres', 0):,.0f} €")
 
-    # --- ANALYSE PAR DEFAUT ---
-    st.header("3. Analyse par defaut")
+    # --- SCORE GLOBAL ---
+    st.header("3. Score global")
+    col1, col2 = st.columns([1, 3])
 
-    scorer_default = Scorer(ratios, profil="moyen_terme")
-    result_default = scorer_default.compute_all()
-    rec_default = scorer_default.get_recommandation(result_default["score_global"])
-
-    col1, col2 = st.columns([1, 2])
     with col1:
-        st.metric("Score global", f"{result_default['score_global']}/100")
-        st.info(f"**{rec_default}**")
+        score = result["score_global"]
+        st.metric("Score global", f"{score}/100")
+
+        if score >= 75:
+            st.success("✅ Risque faible")
+        elif score >= 60:
+            st.info("ℹ️ Risque modere")
+        elif score >= 45:
+            st.warning("⚠️ Risque eleve")
+        else:
+            st.error("🚨 Risque critique")
 
     with col2:
         st.subheader("Scores par categorie")
-        scores_cat = result_default["scores_categories"]
-        for cat, score in scores_cat.items():
-            if score is not None:
-                st.progress(min(score / 100, 1.0), text=f"{cat} : {score}/100")
+        for cat, sc in result["scores_categories"].items():
+            if sc is not None:
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.progress(min(sc / 100, 1.0), text=f"{cat.replace('_', ' ').title()}")
+                with col_b:
+                    st.write(f"**{sc:.1f}/100**")
+            else:
+                st.write(f"{cat.replace('_', ' ').title()} : N/A")
+
+    # --- DETAILS DES RATIOS ---
+    st.markdown("---")
+    st.header("4. Detail des ratios par categorie")
+
+    details = result.get("details", {})
+
+    # Grouper par categorie
+    par_cat = {}
+    for nom, det in details.items():
+        cat = det.get("categorie", "autre")
+        if cat not in par_cat:
+            par_cat[cat] = []
+        par_cat[cat].append((nom, det))
+
+    for cat in ["liquidite", "endettement", "rentabilite", "structure_financiere",
+                "croissance", "gestion_activite", "tresorerie", "risque_solvabilite"]:
+
+        if cat not in par_cat:
+            continue
+
+        score_cat = result["scores_categories"].get(cat)
+        titre = cat.replace("_", " ").title()
+
+        with st.expander(f"**{titre}** — Score : {score_cat:.1f}/100" if score_cat else f"**{titre}**"):
+
+            data_table = []
+            for nom, det in sorted(par_cat[cat], key=lambda x: -x[1].get("poids", 0)):
+                data_table.append({
+                    "Ratio": nom,
+                    "Valeur": det.get("valeur"),
+                    "Score": det.get("score"),
+                    "Poids": f"{det.get('poids', 0):.2f}",
+                    "Cible": det.get("cible", ""),
+                    "Source": det.get("source", ""),
+                })
+
+            df = pd.DataFrame(data_table)
+            st.dataframe(df, use_container_width=True)
 
     # --- AJUSTEMENT DES PONDERATIONS ---
     st.markdown("---")
-    st.header("4. Ajustement des ponderations")
-    st.markdown("Modifiez les poids pour recalculer le score en temps reel.")
+    st.header("5. Ajustement des ponderations")
+    st.markdown("Modifiez les poids des categories pour recalculer le score en temps reel.")
 
-    profil_choisi = st.selectbox(
+    profil = st.selectbox(
         "Profil predefini",
         options=list(PROFILS.keys()),
         format_func=lambda x: PROFILS[x]["label"],
         index=2,
     )
 
-    poids_defaut = PROFILS[profil_choisi]["poids"]
+    poids_defaut = PROFILS[profil]["poids"]
 
-    st.subheader("Ponderations personnalisees")
     poids_custom = {}
     cols = st.columns(4)
     for i, (cat, poids) in enumerate(poids_defaut.items()):
@@ -225,30 +256,17 @@ if st.session_state.analyse_faite and st.session_state.ratios:
 
     total = sum(poids_custom.values())
     if total > 0:
-        st.info(f"Total des poids : {total:.2f} (normalisation automatique)")
+        poids_normalises = {c: p / total for c, p in poids_custom.items()}
+        st.info(f"Total : {total:.2f} → normalise automatiquement a 1.00")
 
-    # --- SCORE PERSONNALISE (toujours affiche) ---
-    if total > 0:
-        # Normaliser les poids pour que le total = 1.00
-        poids_normalises = {cat: p / total for cat, p in poids_custom.items()}
-
-        st.markdown("---")
-        st.header("5. Score personnalise")
-
-        scorer_custom = Scorer(ratios, profil=profil_choisi, poids_custom=poids_normalises)
+        scorer_custom = Scorer(ratios, profil=profil, poids_custom=poids_normalises)
         result_custom = scorer_custom.compute_all()
-        rec_custom = scorer_custom.get_recommandation(result_custom["score_global"])
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Score par defaut", f"{result_default['score_global']}/100")
+            st.metric("Score par defaut", f"{result['score_global']}/100")
         with col2:
-            delta = result_custom["score_global"] - result_default["score_global"]
+            delta = result_custom["score_global"] - result["score_global"]
             st.metric("Score personnalise", f"{result_custom['score_global']}/100", delta=f"{delta:+.1f}")
-
-        st.info(f"**{rec_custom}**")
-
-        # Afficher les poids normalises
-        with st.expander("Voir les poids normalises"):
-            for cat, poids in poids_normalises.items():
-                st.write(f"  {cat:25s} : {poids:.3f}")
+        with col3:
+            st.metric("Ecart", f"{delta:+.2f}")
