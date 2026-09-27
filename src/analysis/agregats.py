@@ -103,16 +103,28 @@ class Agregats:
     # STRUCTURE FINANCIERE
     # ============================================================
     def _compute_structure(self):
-        # Capitaux propres (approximation via les postes du passif)
-        capital = self._get("passif", "capital_social")
-        primes = self._get("passif", "primes_emission")
-        reserves = self._get("passif", "reserves")
-        report = self._get("passif", "report_a_nouveau")
-        resultat = self._get("passif", "resultat_exercice")
-        cp = capital + primes + reserves + report + resultat
-        # Fallback 1 : total explicite
+        # Capitaux propres : PREFERER le total explicite s'il existe
+        cp = self._get("passif", "total_capitaux_propres")
+
         if cp == 0:
-            cp = self._get("passif", "total_capitaux_propres")
+            # Sinon, calculer par somme des composants
+            capital = self._get("passif", "capital_social")
+            primes = self._get("passif", "primes_emission")
+            reserve_legale = self._get("passif", "reserve_legale")
+            reserves_statutaires = self._get("passif", "reserves_statutaires")
+            reserves_reglementees = self._get("passif", "reserves_reglementees")
+            autres_reserves = self._get("passif", "autres_reserves")
+            report = self._get("passif", "report_a_nouveau")
+            resultat = self._get("passif", "resultat_exercice")
+            subventions = self._get("passif", "subventions_investissement")
+            provisions_regl = self._get("passif", "provisions_reglementees")
+
+            cp = (
+                capital + primes + reserve_legale + reserves_statutaires
+                + reserves_reglementees + autres_reserves + report + resultat
+                + subventions + provisions_regl
+            )
+
         self.resultats["capitaux_propres"] = cp
 
         # Dettes financieres
@@ -151,6 +163,25 @@ class Agregats:
 
         # Ressources stables (approximation : capitaux propres + dettes financieres)
         self.resultats["ressources_stables"] = cp + dettes_fin
+
+        # Totaux du bilan (recuperes directement du parser)
+        self.resultats["total_actif"] = self._get("actif", "total_actif")
+        self.resultats["total_passif"] = self._get("passif", "total_passif")
+        self.resultats["total_stocks"] = self._get("actif", "total_stocks")
+        self.resultats["total_creances"] = self._get("actif", "total_creances")
+        self.resultats["dettes_fiscales_sociales"] = self._get("passif", "dettes_fiscales_sociales")
+        self.resultats["actif_circulant"] = (
+            self.resultats["total_stocks"]
+            + self.resultats["total_creances"]
+            + self._get("actif", "disponibilites")
+            + self._get("actif", "valeurs_mobilieres_placement")
+        )
+        self.resultats["passif_circulant"] = (
+            self.resultats["dettes_fournisseurs"]
+            + self.resultats["dettes_fiscales_sociales"]
+            + self._get("passif", "autres_dettes")
+            + self._get("passif", "produits_constates_avance")
+        )
 
         # BFR
         stocks = self._get("actif", "total_stocks")
