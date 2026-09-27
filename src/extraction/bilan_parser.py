@@ -125,12 +125,22 @@ class BilanParser:
             )
 
             if code_std:
-                result[section_courante][code_std["code"]] = {
-                    "libelle_original": libelle,
-                    "montants": montants,
-                    "score": code_std["score"],
-                    "methode": code_std["methode"],
-                }
+                code = code_std["code"]
+                # Sommer les montants si le code existe deja
+                if code in result[section_courante]:
+                    existing = result[section_courante][code]["montants"]
+                    for col, val in montants.items():
+                        if col in existing:
+                            existing[col] += val
+                        else:
+                            existing[col] = val
+                else:
+                    result[section_courante][code] = {
+                        "libelle_original": libelle,
+                        "montants": montants,
+                        "score": code_std["score"],
+                        "methode": code_std["methode"],
+                    }
 
         return result
 
@@ -199,27 +209,33 @@ class BilanParser:
         montants_dict = {}
         n = len(valeurs)
 
-        if n == 1:
-            montants_dict["net"] = valeurs[0]
-        elif n == 2:
-            montants_dict["net"] = valeurs[0]
-            montants_dict["net_n1"] = valeurs[1]
-        elif n == 3:
-            montants_dict["brut"] = valeurs[0]
-            montants_dict["net"] = valeurs[1]
-            montants_dict["net_n1"] = valeurs[2]
-        elif n == 4:
-            # Bilan : Brut | Amort | Net N | Net N-1
-            montants_dict["brut"] = valeurs[0]
-            montants_dict["amort"] = valeurs[1]
-            montants_dict["net"] = valeurs[2]
-            montants_dict["net_n1"] = valeurs[3]
+        if section == "actif":
+            # Bilan actif : Brut | Amort | Net [| Net N-1]
+            if n == 1:
+                montants_dict["net"] = valeurs[0]
+            elif n == 2:
+                montants_dict["amort"] = valeurs[0]
+                montants_dict["net"] = valeurs[1]
+            elif n == 3:
+                montants_dict["brut"] = valeurs[0]
+                montants_dict["amort"] = valeurs[1]
+                montants_dict["net"] = valeurs[2]
+            elif n >= 4:
+                montants_dict["brut"] = valeurs[0]
+                montants_dict["amort"] = valeurs[1]
+                montants_dict["net"] = valeurs[2]
+                montants_dict["net_n1"] = valeurs[3]
         else:
-            # 5+ valeurs : prendre les 4 premieres
-            montants_dict["brut"] = valeurs[0]
-            montants_dict["amort"] = valeurs[1]
-            montants_dict["net"] = valeurs[2]
-            montants_dict["net_n1"] = valeurs[3]
+            # Bilan passif ou compte de resultat : Net [| Net N-1 | Net N-2]
+            if n == 1:
+                montants_dict["net"] = valeurs[0]
+            elif n == 2:
+                montants_dict["net"] = valeurs[0]
+                montants_dict["net_n1"] = valeurs[1]
+            elif n >= 3:
+                montants_dict["net"] = valeurs[0]
+                montants_dict["net_n1"] = valeurs[1]
+                montants_dict["net_n2"] = valeurs[2]
 
         return libelle, montants_dict
 

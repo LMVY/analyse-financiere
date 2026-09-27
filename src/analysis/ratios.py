@@ -38,7 +38,6 @@ class Ratios:
             "gestion_activite": self._gestion_activite(),
             "tresorerie": self._tresorerie(),
             "risque_solvabilite": self._risque_solvabilite(),
-            "marche_valorisation": self._marche_valorisation(),
         }
         return self.resultats
 
