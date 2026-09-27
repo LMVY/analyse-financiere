@@ -1,4 +1,7 @@
-"""Parser unifie : extrait et structure les postes comptables d'un PDF."""
+"""Parser unifie : extrait et structure les postes comptables d'un PDF.
+
+Regle metier : les 2 dernieres valeurs sont toujours Net N et Net N-1.
+"""
 from pathlib import Path
 from typing import Optional
 
@@ -26,7 +29,6 @@ class BilanParser:
         self.normalizer = PCGNormalizer(referentiel_path)
 
     def _detect_type(self) -> str:
-        """Detecte si le PDF est natif ou scanne."""
         with pdfplumber.open(self.pdf_path) as pdf:
             total_chars = sum(len(p.chars) for p in pdf.pages)
             total_pages = len(pdf.pages)
@@ -36,18 +38,15 @@ class BilanParser:
             return "scanned"
 
     def parse(self, force_ocr: bool = False, dpi: int = 300) -> dict:
-        """Parse le PDF et retourne un dict structure."""
         print("Extraction du texte...")
         pdf_type = "scanned" if force_ocr else self._detect_type()
         print(f"  Type : {pdf_type}")
         print()
 
         if pdf_type == "native":
-            print("  Extraction pdfplumber (mots avec positions)...")
             extractor = PDFPlumberExtractor(self.pdf_path)
             rows = extractor.extract_rows()
         else:
-            print("  Extraction OCR (mots avec positions)...")
             extractor = OCRExtractor(self.pdf_path)
             rows = extractor.extract_rows(dpi=dpi)
 
@@ -65,6 +64,14 @@ class BilanParser:
 
         return data
 
+    def parse_simple(self, force_ocr: bool = False, dpi: int = 300) -> dict:
+        data = self.parse(force_ocr=force_ocr, dpi=dpi)
+        result = {}
+        for section in ["actif", "passif", "compte_resultat"]:
+            selector = ColumnSelector(section)
+            result[section] = selector.select_all(data[section])
+        return result
+
     def _parse_rows(self, rows: list) -> dict:
         result = {"actif": {}, "passif": {}, "compte_resultat": {}}
         section_courante = None
@@ -72,7 +79,8 @@ class BilanParser:
         for row in rows:
             if not row:
                 continue
-            ligne = " ".join(row).strip()
+
+            ligne = " ".join([c[0] if isinstance(c, tuple) else c for c in row]).strip()
             if not ligne:
                 continue
 
@@ -87,13 +95,14 @@ class BilanParser:
             if self._should_skip(row):
                 continue
 
-            parsed = self._parse_row_comptable(row)
+            parsed = self._parse_row_comptable(row, section_courante)
             if not parsed:
                 continue
 
             libelle, montants = parsed
+
             code_std = self.normalizer.normalize_label(
-                libelle, section_hint=section_courante, seuil=92.0
+                libelle, section_hint=section_courante, seuil=90.0
             )
 
             if code_std:
@@ -121,60 +130,74 @@ class BilanParser:
     def _should_skip(self, row: list) -> bool:
         if len(row) < 2:
             return True
-        if not row[0].strip():
+
+        first_cell = row[0][0] if isinstance(row[0], tuple) else row[0]
+        if not first_cell.strip():
             return True
+
+        norm = normalize_text(first_cell)
+        if len(norm) <= 2 and not norm.isalpha():
+            return True
+
         has_amount = False
         for cell in row[1:]:
-            if self.normalizer.parse_amount(cell) is not None:
+            text = cell[0] if isinstance(cell, tuple) else cell
+            if self.normalizer.parse_amount(text) is not None:
                 has_amount = True
                 break
         if not has_amount:
             return True
-        norm = normalize_text(" ".join(row))
-        skip_keywords = ["rubriques", "poste", "montant"]
-        if any(kw in norm for kw in skip_keywords) and "total" not in norm:
-            return True
+
         return False
 
-    def _parse_row_comptable(self, row: list) -> Optional[tuple]:
-        libelle = row[0].strip()
+    def _parse_row_comptable(self, row: list, section: str) -> Optional[tuple]:
+        """Extrait (libelle, montants) avec la regle metier.
+
+        REGLE : les 2 dernieres valeurs = Net N et Net N-1.
+        """
+        first = row[0]
+        libelle = first[0] if isinstance(first, tuple) else first
+        libelle = libelle.strip()
         if len(libelle) < 3:
             return None
 
-        montants = []
+        # Recuperer toutes les valeurs numeriques
+        valeurs = []
         for cell in row[1:]:
-            val = self.normalizer.parse_amount(cell)
-            if val is not None:
-                montants.append(val)
+            text = cell[0] if isinstance(cell, tuple) else cell
+            val = self.normalizer.parse_amount(text)
+            if val is not None and abs(val) < 1e9:
+                valeurs.append(val)
 
-        if not montants:
+        if not valeurs:
             return None
 
-        montants = [m for m in montants if abs(m) < 1e9]
-        if not montants:
-            return None
-
-        colonnes = ["brut", "amort", "net", "net_n1", "net_n2", "autre"]
         montants_dict = {}
-        for i, val in enumerate(montants[:6]):
-            montants_dict[colonnes[i]] = val
+        n = len(valeurs)
+
+        if n == 1:
+            montants_dict["net"] = valeurs[0]
+        elif n == 2:
+            montants_dict["net"] = valeurs[0]
+            montants_dict["net_n1"] = valeurs[1]
+        elif n == 3:
+            montants_dict["brut"] = valeurs[0]
+            montants_dict["net"] = valeurs[1]
+            montants_dict["net_n1"] = valeurs[2]
+        elif n == 4:
+            # Bilan : Brut | Amort | Net N | Net N-1
+            montants_dict["brut"] = valeurs[0]
+            montants_dict["amort"] = valeurs[1]
+            montants_dict["net"] = valeurs[2]
+            montants_dict["net_n1"] = valeurs[3]
+        else:
+            # 5+ valeurs : prendre les 4 premieres
+            montants_dict["brut"] = valeurs[0]
+            montants_dict["amort"] = valeurs[1]
+            montants_dict["net"] = valeurs[2]
+            montants_dict["net_n1"] = valeurs[3]
 
         return libelle, montants_dict
-
-
-
-    def parse_simple(self, force_ocr: bool = False, dpi: int = 300) -> dict:
-        """Parse et retourne directement les valeurs (Net) par poste.
-
-        Returns:
-            {"actif": {"total_actif": 613004}, "passif": {...}, "compte_resultat": {...}}
-        """
-        data = self.parse(force_ocr=force_ocr, dpi=dpi)
-        result = {}
-        for section in ["actif", "passif", "compte_resultat"]:
-            selector = ColumnSelector(section)
-            result[section] = selector.select_all(data[section])
-        return result
 
 
 if __name__ == "__main__":

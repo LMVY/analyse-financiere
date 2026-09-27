@@ -1,4 +1,7 @@
-"""Extraction de texte depuis un PDF scanne via OCR (Tesseract)."""
+"""Extraction de texte depuis un PDF scanne via OCR (Tesseract).
+
+Retourne les lignes avec les positions X des cellules.
+"""
 from pathlib import Path
 from pdf2image import convert_from_path
 import pytesseract
@@ -29,6 +32,13 @@ class OCRExtractor:
         return "\n\n".join(texte_total)
 
     def extract_rows(self, dpi: int = 300) -> list:
+        """Retourne les lignes avec positions X.
+
+        Format : [
+            [("RUBRIQUES", 50), ("BRUT", 200), ("Amort", 300), ...],
+            [("Constructions", 50), ("88 329", 200), ("85 561", 300), ...],
+        ]
+        """
         print(f"  Conversion PDF -> images (dpi={dpi})...")
         images = convert_from_path(self.pdf_path, dpi=dpi)
         print(f"  {len(images)} pages a traiter")
@@ -76,17 +86,19 @@ class OCRExtractor:
         for line in lines:
             line.sort(key=lambda w: w["x"])
             cells = []
-            current_cell = [line[0]["text"]]
+            current_cell_words = [line[0]["text"]]
+            current_cell_x = line[0]["x"]
             last_x_end = line[0]["x"] + line[0]["width"]
             for w in line[1:]:
                 gap = w["x"] - last_x_end
                 if gap > self.CELL_GAP:
-                    cells.append(" ".join(current_cell))
-                    current_cell = [w["text"]]
+                    cells.append((" ".join(current_cell_words), current_cell_x))
+                    current_cell_words = [w["text"]]
+                    current_cell_x = w["x"]
                 else:
-                    current_cell.append(w["text"])
+                    current_cell_words.append(w["text"])
                 last_x_end = w["x"] + w["width"]
-            cells.append(" ".join(current_cell))
+            cells.append((" ".join(current_cell_words), current_cell_x))
             rows.append(cells)
         return rows
 
