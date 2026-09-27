@@ -5,6 +5,7 @@ from typing import Optional
 from src.extraction.ocr_extractor import OCRExtractor
 from src.extraction.pdfplumber_extractor import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
+from src.analysis.selector import ColumnSelector
 import pdfplumber
 
 
@@ -159,6 +160,21 @@ class BilanParser:
             montants_dict[colonnes[i]] = val
 
         return libelle, montants_dict
+
+
+
+    def parse_simple(self, force_ocr: bool = False, dpi: int = 300) -> dict:
+        """Parse et retourne directement les valeurs (Net) par poste.
+
+        Returns:
+            {"actif": {"total_actif": 613004}, "passif": {...}, "compte_resultat": {...}}
+        """
+        data = self.parse(force_ocr=force_ocr, dpi=dpi)
+        result = {}
+        for section in ["actif", "passif", "compte_resultat"]:
+            selector = ColumnSelector(section)
+            result[section] = selector.select_all(data[section])
+        return result
 
 
 if __name__ == "__main__":
