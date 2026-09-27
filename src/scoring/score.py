@@ -1,5 +1,19 @@
-"""Moteur de scoring parametrable."""
-from typing import Optional
+"""Moteur de scoring parametrable.
+
+Lit la configuration depuis config/ratios_config.yaml.
+"""
+import yaml
+from pathlib import Path
+
+
+CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "ratios_config.yaml"
+
+
+def load_config(path=None):
+    """Charge la configuration des ratios depuis le YAML."""
+    p = Path(path) if path else CONFIG_PATH
+    with open(p, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 
 PROFILS = {
@@ -30,65 +44,35 @@ PROFILS = {
 }
 
 
-GRILLES = {
-    "current_ratio":        {"seuils": [0.5, 1.0, 1.5, 2.0, 3.0], "sens": "hausse_bien"},
-    "quick_ratio":          {"seuils": [0.3, 0.6, 1.0, 1.5, 2.0], "sens": "hausse_bien"},
-    "cash_ratio":           {"seuils": [0.05, 0.1, 0.2, 0.5, 1.0], "sens": "hausse_bien"},
-    "liquidite_immediate":  {"seuils": [0.1, 0.3, 0.5, 1.0, 2.0], "sens": "hausse_bien"},
-    "liquidite_generale":   {"seuils": [0.5, 1.0, 1.5, 2.0, 3.0], "sens": "hausse_bien"},
-    "gearing":              {"seuils": [30, 50, 100, 150, 200], "sens": "baisse_bien"},
-    "levier_financier":     {"seuils": [50, 100, 150, 200, 300], "sens": "baisse_bien"},
-    "dette_nette_ebitda":   {"seuils": [0, 1, 2, 3.5, 5], "sens": "baisse_bien"},
-    "dette_nette_fonds_propres": {"seuils": [0, 20, 50, 100, 150], "sens": "baisse_bien"},
-    "interest_coverage":    {"seuils": [0.5, 1, 2, 4, 8], "sens": "hausse_bien"},
-    "capacite_desendettement": {"seuils": [0.5, 1, 2, 3, 5], "sens": "baisse_bien"},
-    "marge_brute":          {"seuils": [5, 15, 25, 40, 60], "sens": "hausse_bien"},
-    "marge_ebitda":         {"seuils": [2, 5, 10, 15, 25], "sens": "hausse_bien"},
-    "marge_operationnelle": {"seuils": [0, 2, 5, 10, 15], "sens": "hausse_bien"},
-    "marge_nette":          {"seuils": [0, 1, 3, 5, 10], "sens": "hausse_bien"},
-    "roe":                  {"seuils": [0, 3, 8, 15, 25], "sens": "hausse_bien"},
-    "roa":                  {"seuils": [0, 1, 3, 5, 10], "sens": "hausse_bien"},
-    "roce":                 {"seuils": [0, 3, 7, 12, 20], "sens": "hausse_bien"},
-    "rentabilite_economique": {"seuils": [0, 3, 5, 10, 15], "sens": "hausse_bien"},
-    "roic":                 {"seuils": [0, 3, 7, 12, 20], "sens": "hausse_bien"},
-    "autonomie_financiere": {"seuils": [10, 20, 30, 50, 70], "sens": "hausse_bien"},
-    "poids_des_dettes":     {"seuils": [30, 50, 70, 85, 95], "sens": "baisse_bien"},
-    "equilibre_financier":  {"seuils": [0.5, 0.8, 1.0, 1.5, 2.0], "sens": "hausse_bien"},
-    "rotation_stocks":      {"seuils": [1, 2, 4, 8, 15], "sens": "hausse_bien"},
-    "dsi":                  {"seuils": [15, 30, 60, 90, 120], "sens": "baisse_bien"},
-    "dso":                  {"seuils": [15, 30, 45, 60, 90], "sens": "baisse_bien"},
-    "dpo":                  {"seuils": [15, 30, 45, 60, 90], "sens": "hausse_bien"},
-    "rotation_actif":       {"seuils": [0.3, 0.5, 1.0, 1.5, 2.5], "sens": "hausse_bien"},
-    "rotation_capitaux_employes": {"seuils": [0.3, 0.5, 1.0, 1.5, 2.5], "sens": "hausse_bien"},
-    "tresorerie_ca":        {"seuils": [1, 3, 5, 10, 20], "sens": "hausse_bien"},
-    "tresorerie_dettes_ct": {"seuils": [0.05, 0.1, 0.2, 0.5, 1.0], "sens": "hausse_bien"},
-    "couverture_caf_dette": {"seuils": [5, 10, 20, 40, 80], "sens": "hausse_bien"},
-    "ratio_solvabilite":    {"seuils": [10, 25, 50, 100, 200], "sens": "hausse_bien"},
-    "ratio_couverture_dettes": {"seuils": [1.0, 1.2, 1.5, 2.0, 3.0], "sens": "hausse_bien"},
-    "ratio_liquidite_large": {"seuils": [0.5, 1.0, 1.5, 2.5, 4.0], "sens": "hausse_bien"},
-    "score_conan_holder":   {"seuils": [-10, -3, 0, 5, 10], "sens": "hausse_bien"},
-    "croissance_ca":        {"seuils": [-20, -10, 0, 5, 15], "sens": "hausse_bien"},
-    "croissance_ebitda":    {"seuils": [-30, -15, 0, 10, 25], "sens": "hausse_bien"},
-    "croissance_resultat_net": {"seuils": [-50, -20, 0, 10, 30], "sens": "hausse_bien"},
-}
-
-
 class Scorer:
-    """Moteur de scoring parametrable."""
+    """Moteur de scoring parametrable (lit le YAML)."""
 
-    def __init__(self, ratios: dict, profil: str = "moyen_terme", poids_custom: dict = None):
+    def __init__(self, ratios: dict, profil: str = "moyen_terme", poids_custom: dict = None, config_path=None):
         self.ratios = ratios
         self.profil = profil
+        self.config = load_config(config_path)
         self.poids = poids_custom if poids_custom else PROFILS[profil]["poids"]
         self.scores_ratios = {}
         self.scores_categories = {}
+        self.details = {}
 
     def _score_ratio(self, nom, valeur):
+        """Note un ratio selon sa config YAML."""
         if valeur is None:
             return None
-        grille = GRILLES.get(nom)
+
+        # Chercher la config du ratio dans toutes les categories
+        grille = None
+        for cat, ratios in self.config.items():
+            if cat in ("agregats",):
+                continue
+            if nom in ratios:
+                grille = ratios[nom]
+                break
+
         if not grille:
             return None
+
         seuils = grille["seuils"]
         sens = grille["sens"]
 
@@ -110,16 +94,42 @@ class Scorer:
             return 0.0
 
     def compute_all(self):
+        # 1. Score de chaque ratio (avec poids)
         for cat, ratios in self.ratios.items():
+            if cat not in self.config:
+                continue
             for nom, valeur in ratios.items():
+                if nom not in self.config[cat]:
+                    continue
                 score = self._score_ratio(nom, valeur)
                 if score is not None:
+                    poids_ratio = self.config[cat][nom].get("poids", 0)
                     self.scores_ratios[nom] = score
+                    self.details[nom] = {
+                        "score": round(score, 2),
+                        "valeur": valeur,
+                        "poids": poids_ratio,
+                        "source": self.config[cat][nom].get("source", ""),
+                        "cible": self.config[cat][nom].get("cible", ""),
+                        "categorie": cat,
+                    }
 
-        for cat, ratios in self.ratios.items():
-            scores_cat = [self.scores_ratios[n] for n in ratios.keys() if n in self.scores_ratios]
-            self.scores_categories[cat] = sum(scores_cat) / len(scores_cat) if scores_cat else None
+        # 2. Score par categorie (moyenne ponderee par les poids des ratios)
+        for cat, ratios in self.config.items():
+            if cat == "agregats":
+                continue
+            total_score = 0.0
+            total_poids = 0.0
+            for nom in ratios.keys():
+                if nom in self.scores_ratios:
+                    total_score += self.scores_ratios[nom] * ratios[nom]["poids"]
+                    total_poids += ratios[nom]["poids"]
+            if total_poids > 0:
+                self.scores_categories[cat] = total_score / total_poids
+            else:
+                self.scores_categories[cat] = None
 
+        # 3. Score global (moyenne ponderee par les poids des categories)
         score_global = 0.0
         total_poids = 0.0
         for cat, poids in self.poids.items():
@@ -135,6 +145,7 @@ class Scorer:
             "profil": self.profil,
             "scores_categories": {c: round(s, 2) if s is not None else None for c, s in self.scores_categories.items()},
             "scores_ratios": {n: round(s, 2) for n, s in self.scores_ratios.items()},
+            "details": self.details,
         }
 
     def get_recommandation(self, score):
