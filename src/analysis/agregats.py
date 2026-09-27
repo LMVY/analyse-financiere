@@ -110,7 +110,7 @@ class Agregats:
         report = self._get("passif", "report_a_nouveau")
         resultat = self._get("passif", "resultat_exercice")
         cp = capital + primes + reserves + report + resultat
-        # Fallback si le total est explicite
+        # Fallback 1 : total explicite
         if cp == 0:
             cp = self._get("passif", "total_capitaux_propres")
         self.resultats["capitaux_propres"] = cp
@@ -124,9 +124,24 @@ class Agregats:
         # Dettes fournisseurs
         self.resultats["dettes_fournisseurs"] = self._get("passif", "dettes_fournisseurs")
 
-        # Total dettes (approximation)
-        total_passif = self._get("passif", "total_passif")
-        self.resultats["total_dettes"] = total_passif - cp
+        # Total dettes : calculer par somme des postes individuels
+        dettes_codes = [
+            "dettes_financieres",
+            "total_dettes_financieres",
+            "dettes_fournisseurs",
+            "dettes_fiscales_sociales",
+            "dettes_immobilisations",
+            "autres_dettes",
+            "avances_acomptes_recus",
+            "emprunts_obligataires",
+            "provisions_risques",
+            "provisions_charges",
+            "produits_constates_avance",
+        ]
+        total_dettes = 0.0
+        for code in dettes_codes:
+            total_dettes += self._get("passif", code)
+        self.resultats["total_dettes"] = total_dettes
 
         # Capitaux employes
         self.resultats["capitaux_employes"] = cp + dettes_fin
@@ -148,6 +163,13 @@ class Agregats:
 
         # Actif economique
         self.resultats["actif_economique"] = self.resultats["actif_immobilise"] + self.resultats["bfr"]
+
+        # Fallback capitaux propres : Total passif - Total dettes
+        if self.resultats.get("capitaux_propres", 0) == 0:
+            total_passif = self._get("passif", "total_passif")
+            total_dettes = self.resultats.get("total_dettes", 0)
+            if total_passif > 0 and total_dettes > 0:
+                self.resultats["capitaux_propres"] = total_passif - total_dettes
 
     # ============================================================
     # TRESORERIE

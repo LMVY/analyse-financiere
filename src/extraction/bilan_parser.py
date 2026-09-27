@@ -12,6 +12,25 @@ from src.analysis.selector import ColumnSelector
 import pdfplumber
 
 
+
+# Titres de section a ignorer (ce ne sont pas des postes comptables)
+STOPWORDS = [
+    "dettes",
+    "creances",
+    "immobilisations",
+    "capitaux propres",
+    "capitaux",
+    "provisions",
+    "stocks",
+    "actif circulant",
+    "passif circulant",
+    "comptes de regularisation",
+    "total",
+    "totaux",
+    "bilan",
+    "compte de resultat",
+]
+
 SECTION_KEYWORDS = {
     "actif": ["bilan actif", "actif", "actif immobilise"],
     "passif": ["bilan passif", "passif", "capitaux propres"],
@@ -146,6 +165,11 @@ class BilanParser:
                 has_amount = True
                 break
         if not has_amount:
+            return True
+
+        # Ignorer les titres de section
+        libelle_norm = normalize_text(first_cell)
+        if libelle_norm in STOPWORDS:
             return True
 
         return False
