@@ -50,25 +50,35 @@ CODES_DGFIP = {
 
 SECTION_CODES = {
     "actif": ["AB","AF","AH","AJ","AP","AR","AT","BJ","CU","BD","BH","BT","BX","BZ","CD","CF","CH","CJ","CO"],
-    "passif": ["DA","DB","DD","DG","DH","DI","DK","DL","DP","DQ","DS","DU","DV","DX","DY","DZ","EA","EB","EC","EE"],
+    "passif": ["DA","DB","DC","DD","DE","DG","DH","DI","DJ","DK","DL","DP","DQ","DS","DT","DU","DV","DX","DY","DZ","EA","EB","EC","EE"],
     "compte_resultat": ["FA","FG","FJ","FO","FP","FQ","FR","FS","FT","FU","FW","FX","FY","FZ","GA","GB","GC","GD","GE","GF","GG","GJ","GL","GM","GP","GQ","GR","GU","GV","GW","HA","HB","HC","HD","HE","HF","HG","HH","HI","HJ","HK","HL","HM","HN"],
 }
 
 
-def group_words_into_cells(words, line_tolerance=3, cell_gap=15):
-    """Groupe les mots en lignes, puis en cellules."""
+def group_words_into_cells(words, line_tolerance=6, cell_gap=15):
+    """Groupe par cluster Y (Y proches), pas par arrondi."""
     if not words:
         return []
 
-    # Grouper par Y
-    lines = {}
-    for w in words:
-        y_key = round(w["top"] / line_tolerance) * line_tolerance
-        lines.setdefault(y_key, []).append(w)
+    sorted_words = sorted(words, key=lambda w: (w["top"], w["x0"]))
+
+    lines = []
+    current_line = [sorted_words[0]]
+    current_y = sorted_words[0]["top"]
+
+    for w in sorted_words[1:]:
+        if abs(w["top"] - current_y) <= line_tolerance:
+            current_line.append(w)
+        else:
+            lines.append(current_line)
+            current_line = [w]
+            current_y = w["top"]
+    lines.append(current_line)
 
     result = []
-    for y in sorted(lines.keys()):
-        line_words = sorted(lines[y], key=lambda w: w["x0"])
+    for line_words in lines:
+        line_words.sort(key=lambda w: w["x0"])
+        y = line_words[0]["top"]
 
         cells = []
         current = [line_words[0]["text"]]
