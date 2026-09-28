@@ -136,23 +136,20 @@ class Agregats:
         # Dettes fournisseurs
         self.resultats["dettes_fournisseurs"] = self._get("passif", "dettes_fournisseurs")
 
-        # Total dettes : calculer par somme des postes individuels
-        dettes_codes = [
-            "dettes_financieres",
-            "total_dettes_financieres",
-            "dettes_fournisseurs",
-            "dettes_fiscales_sociales",
-            "dettes_immobilisations",
-            "autres_dettes",
-            "avances_acomptes_recus",
-            "emprunts_obligataires",
-            "provisions_risques",
-            "provisions_charges",
-            "produits_constates_avance",
-        ]
-        total_dettes = 0.0
-        for code in dettes_codes:
-            total_dettes += self._get("passif", code)
+        # Total dettes : PREFERER le total explicite (code EC du DGFiP)
+        total_dettes = self._get("passif", "total_dettes")
+        if total_dettes == 0:
+            # Sinon, calculer par somme
+            dettes_codes = [
+                "dettes_financieres", "total_dettes_financieres",
+                "dettes_fournisseurs", "dettes_fiscales_sociales",
+                "dettes_immobilisations", "autres_dettes",
+                "avances_acomptes_recus", "emprunts_obligataires",
+                "provisions_risques", "provisions_charges",
+                "produits_constates_avance",
+            ]
+            for code in dettes_codes:
+                total_dettes += self._get("passif", code)
         self.resultats["total_dettes"] = total_dettes
 
         # Capitaux employes

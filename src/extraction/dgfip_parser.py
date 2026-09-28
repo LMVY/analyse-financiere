@@ -23,7 +23,7 @@ CODES_DGFIP = {
     "BT": "stocks_marchandises", "BX": "creances_clients",
     "BZ": "autres_creances", "CD": "valeurs_mobilieres_placement",
     "CF": "disponibilites", "CH": "charges_constatees_avance",
-    "CJ": "total_actif_circulant", "CO": "total_actif",
+    "CJ": "total_actif_circulant", "CO": "total_actif",  # Prendre le Net
     "FA": "ventes_marchandises", "FG": "production_vendue_services",
     "FJ": "chiffre_affaires", "FO": "subventions_exploitation",
     "FP": "reprises_amortissements", "FQ": "autres_produits",
@@ -133,18 +133,19 @@ def extract_dgfip_values(pdf_path):
 
             # Traiter chaque ligne
             for y, cells in lignes:
-                # Chercher un code DGFiP dans les cellules
-                for i, cell in enumerate(cells):
-                    code = cell.strip()
+                # Chercher TOUS les codes DGFiP de la ligne (pas seulement le 1er)
+                i = 0
+                while i < len(cells):
+                    code = cells[i].strip()
                     if code in CODES_DGFIP:
-                        # Les cellules suivantes contiennent les montants
+                        # Extraire les montants entre ce code et le prochain code
                         montants = []
-                        for j in range(i + 1, min(i + 5, len(cells))):
+                        for j in range(i + 1, len(cells)):
+                            if cells[j].strip() in CODES_DGFIP:
+                                break  # stop au prochain code
                             val = parse_montant(cells[j])
                             if val is not None and abs(val) >= 100:
                                 montants.append(val)
-                            if len(montants) >= 2:
-                                break
 
                         if montants:
                             code_std = CODES_DGFIP[code]
@@ -154,10 +155,44 @@ def extract_dgfip_values(pdf_path):
                                     section = s
                                     break
                             if section:
-                                result[section][code_std] = montants[0]
-                                if len(montants) >= 2:
-                                    result[section][code_std + "_n1"] = montants[1]
-                        break
+                                # Ne pas ecraser si deja trouve (eviter la 2e ligne moins fiable)
+                                if code_std in result[section]:
+                                    i += 1
+                                    continue
+
+                                # Pour l'ACTIF : format Brut | Amort | Net | Net N-1
+                                if section == "actif" and len(montants) >= 3:
+                                    result[section][code_std] = montants[2]  # Net
+                                    if len(montants) >= 4:
+                                        result[section][code_std + "_n1"] = montants[3]
+                                elif section == "actif" and len(montants) == 2:
+                                    result[section][code_std] = montants[1]
+                                elif section == "actif":
+                                    result[section][code_std] = montants[0]
+                                else:
+                                    result[section][code_std] = montants[0]
+                                    if len(montants) >= 2:
+                                        result[section][code_std + "_n1"] = montants[1]
+                    i += 1
+
+
+    # === CALCULS DERIVES a partir des codes DGFiP ===
+    actif = result["actif"]
+
+    if "total_immobilisations_brutes" in actif:
+        brut = actif["total_immobilisations_brutes"]
+        amort = actif.get("amortissements_immobilisations", 0)
+        actif["actif_immobilise"] = brut - amort
+
+    if "stocks_marchandises" in actif:
+        stocks = actif["stocks_marchandises"]
+        deprec = actif.get("depreciations_stocks", 0)
+        actif["total_stocks"] = stocks - deprec
+
+    if "creances_clients" in actif or "autres_creances" in actif:
+        creances = actif.get("creances_clients", 0) + actif.get("autres_creances", 0)
+        deprec = actif.get("depreciations_creances", 0)
+        actif["total_creances"] = creances - deprec
 
     return result
 
