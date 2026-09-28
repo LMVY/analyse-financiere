@@ -1,0 +1,19 @@
+JournalCode|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise
+AN|AN001|20240101|101000|Capital social|||STAT|20240101|Capital initial|0.00|50000.00|||||
+AN|AN002|20240101|512000|Banque|||VIR001|20240101|Apport capital|50000.00|0.00|||||
+VE|VE001|20240115|411000|Clients|CL001|Client A|FA001|20240115|Vente produits|12000.00|0.00|||||
+VE|VE001|20240115|707000|Ventes de marchandises|||FA001|20240115|Vente produits|0.00|12000.00|||||
+BQ|BQ001|20240120|512000|Banque|||VIR002|20240120|Encaissement|12000.00|0.00|||||
+BQ|BQ001|20240120|411000|Clients|CL001|Client A|VIR002|20240120|Encaissement|0.00|12000.00|||||
+AC|AC001|20240215|607000|Achats de marchandises|||FA-F001|20240215|Achat marchandises|5000.00|0.00|||||
+AC|AC001|20240215|401000|Fournisseurs|||FA-F001|20240215|Achat marchandises|0.00|5000.00|||||
+BQ|BQ002|20240220|512000|Banque|||VIR003|20240220|Paiement fournisseur|0.00|5000.00|||||
+BQ|BQ002|20240220|401000|Fournisseurs|||VIR003|20240220|Paiement fournisseur|5000.00|0.00|||||
+SA|SA001|20240301|641000|Salaires|||PAY01|20240301|Salaires|3000.00|0.00|||||
+SA|SA001|20240301|512000|Banque|||PAY01|20240301|Salaires|0.00|3000.00|||||
+AC|AC002|20240401|613000|Locations|||FA-L001|20240401|Loyer|1000.00|0.00|||||
+AC|AC002|20240401|512000|Banque|||FA-L001|20240401|Loyer|0.00|1000.00|||||
+VE|VE002|20240501|512000|Banque|||FA002|20240501|Vente comptoir|2000.00|0.00|||||
+VE|VE002|20240501|707000|Ventes de marchandises|||FA002|20240501|Vente comptoir|0.00|2000.00|||||
+AN|AN003|20240101|164000|Emprunts|||EMP01|20240101|Emprunt bancaire|0.00|20000.00|||||
+AN|AN003|20240101|512000|Banque|||EMP01|20240101|Emprunt bancaire|0.00|20000.00|||||
