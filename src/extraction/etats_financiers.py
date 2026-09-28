@@ -5,10 +5,17 @@ Regle metier : les 2 dernieres valeurs sont toujours Net N et Net N-1.
 from pathlib import Path
 from typing import Optional
 
-from src.extraction.ocr_extractor import OCRExtractor
-from src.extraction.pdfplumber_extractor import PDFPlumberExtractor
+from src.extraction.outils.ocr_tools import OCRExtractor
+from src.extraction.outils.pdfplumber_tools import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
-from src.extraction.dgfip_parser import extract_dgfip_values, detect_dgfip_format
+from src.extraction.formats.dgfip_pdf import (
+    extract_dgfip_values, detect_dgfip_format,
+)
+from src.extraction.formats.dgfip_excel import (
+    extract_dgfip_values_from_excel, detect_dgfip_excel,
+)
+from src.extraction.formats.excel_normal import extract_excel_values, detect_excel_format
+from src.extraction.formats.fec import extract_fec_values, detect_fec_format
 from src.analysis.selector import ColumnSelector
 import pdfplumber
 
@@ -91,11 +98,42 @@ class BilanParser:
         - DGFiP (liasse fiscale) -> dgfip_parser
         - Standard -> pdfplumber/OCR
         """
-        # 1. Verifier si c'est du DGFiP
-        if detect_dgfip_format(str(self.pdf_path)):
+        # 1. Verifier le format
+        path_str = str(self.pdf_path)
+
+        # FEC ?
+        if detect_fec_format(path_str):
+            print("  Format FEC detecte -> parser FEC")
+            fec_data = extract_fec_values(path_str)
+            result = {}
+            for section in ["actif", "passif", "compte_resultat"]:
+                result[section] = {
+                    k: v for k, v in fec_data.get(section, {}).items()
+                    if not k.endswith("_n1")
+                }
+            return result
+
+        # Excel/CSV ?
+        if detect_excel_format(path_str):
+            # Verifier si c'est une liasse fiscale DGFiP au format Excel
+            if detect_dgfip_excel(path_str):
+                print("  Format DGFiP Excel detecte -> parser DGFiP Excel")
+                excel_data = extract_dgfip_values_from_excel(path_str)
+            else:
+                print("  Format Excel/CSV detecte -> parser Excel")
+                excel_data = extract_excel_values(path_str)
+            result = {}
+            for section in ["actif", "passif", "compte_resultat"]:
+                result[section] = {
+                    k: v for k, v in excel_data.get(section, {}).items()
+                    if not k.endswith("_n1")
+                }
+            return result
+
+        # DGFiP ?
+        if detect_dgfip_format(path_str):
             print("  Format DGFiP detecte -> parser DGFiP")
-            dgfip_data = extract_dgfip_values(str(self.pdf_path))
-            # Garder seulement les valeurs N (sans _n1)
+            dgfip_data = extract_dgfip_values(path_str)
             result = {}
             for section in ["actif", "passif", "compte_resultat"]:
                 result[section] = {

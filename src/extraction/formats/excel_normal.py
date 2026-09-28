@@ -274,7 +274,7 @@ def detect_excel_format(file_path):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage : python -m src.extraction.excel_parser fichier.xlsx")
+        print("Usage : python -m src.extraction.formats.excel_normal fichier.xlsx")
         sys.exit(1)
 
     file_path = sys.argv[1]

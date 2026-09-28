@@ -223,6 +223,9 @@ def detect_dgfip_format(pdf_path):
     return False
 
 
+
+
+# ============================================================
 if __name__ == "__main__":
     import sys
     pdf_path = sys.argv[1] if len(sys.argv) > 1 else "data/raw/sogeca_2024.pdf"

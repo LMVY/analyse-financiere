@@ -209,7 +209,7 @@ def detect_fec_format(file_path):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage : python -m src.extraction.fec_parser fichier.fec")
+        print("Usage : python -m src.extraction.formats.fec fichier.fec")
         sys.exit(1)
 
     file_path = sys.argv[1]

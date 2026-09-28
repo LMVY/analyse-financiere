@@ -1,4 +1,8 @@
-# Environnements Python
+# ============================================================
+# .gitignore - Analyse Financiere
+# ============================================================
+
+# --- Environnements Python ---
 venv/
 .conda/
 env/
@@ -6,39 +10,50 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+.pytest_cache/
 
-# Jupyter
+# --- Jupyter ---
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Données volumineuses
-data/raw/*.csv
-data/raw/*.zip
-data/raw/*.pdf
-data/raw/*.xls
-data/raw/*.xlsx
-data/processed/*.csv
+# --- Donnees (trop volumineuses) ---
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 
-# Modèles sérialisés
-*.pkl
-*.joblib
-*.h5
-*.pt
+# --- Modeles serialises ---
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.pt
+models/*.json
 
-# Config locale et secrets
+# --- Fichiers de test temporaires ---
+test.fec
+test_excel.xlsx
+*.tmp
+
+# --- Config locale et secrets ---
 .env
 .env.*
 *.key
 
-# Système
+# --- Systeme ---
 .DS_Store
 Thumbs.db
 
-# IDE
+# --- IDE ---
 .vscode/
 .idea/
 *.swp
+*.swo
 
-# Fichiers extraits (a regenerer)
-data/processed/*.md
-data/processed/*.txt
+# --- Logs ---
+*.log
+logs/
+
+# --- Backups ---
+*.bak
+*.backup
+*.old

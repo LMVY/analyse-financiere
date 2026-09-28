@@ -9,15 +9,78 @@ import streamlit as st
 import tempfile
 import pandas as pd
 
-from src.extraction.bilan_parser import BilanParser
+from src.extraction.etats_financiers import BilanParser
 from src.analysis.agregats import Agregats
 from src.analysis.ratios import Ratios
 from src.scoring.score import Scorer, PROFILS, load_config
 from src.analysis.validator import Validator
 from src.analysis.filter_ratios import filter_ratios, get_ratios_desactives
 from src.scoring.sector_scorer import SectorScorer, detect_secteur, load_secteurs
-from src.extraction.doc_detector import build_exercices, detect_doc_type, detect_annee
-from src.extraction.doc_detector import build_exercices, detect_doc_type, detect_annee
+from src.extraction.outils.detection import build_exercices, detect_doc_type, detect_annee
+from src.visualization.charts import (
+    radar_scores, waterfall_contributions, comparaison_n_n1,
+    benchmark_sectoriel, evolution_multi_annees
+)
+
+
+def build_exercices_all(paths):
+    """Gere PDF + Excel/CSV/FEC pour la detection d'exercices.
+
+    Args:
+        paths: liste de chemins de fichiers (str)
+    """
+    import re as _re
+    from pathlib import Path as _P
+    exercices = []
+
+    for path in paths:
+        path = str(path)
+        suffix = _P(path).suffix.lower()
+        nom = _P(path).name
+
+        if suffix == ".pdf":
+            # PDF : detection auto (bilan / CR / mixte)
+            try:
+                exs = build_exercices([path])
+                if exs:
+                    for ex in exs:
+                        ex["path"] = path
+                        ex["nom"] = nom
+                        exercices.append(ex)
+                else:
+                    # Fallback : 1 exercice pour ce PDF
+                    m = _re.search(r"(20\d{2})", nom)
+                    annee = int(m.group(1)) if m else 0
+                    exercices.append({
+                        "path": path,
+                        "nom": nom,
+                        "type": "pdf_fallback",
+                        "annee": annee,
+                    })
+            except Exception as e:
+                print(f"  Erreur build_exercices pour {nom} : {e}")
+                m = _re.search(r"(20\d{2})", nom)
+                annee = int(m.group(1)) if m else 0
+                exercices.append({
+                    "path": path,
+                    "nom": nom,
+                    "type": "pdf_fallback",
+                    "annee": annee,
+                })
+        elif suffix in [".xlsx", ".xls", ".csv", ".fec", ".txt"]:
+            # Excel/CSV/FEC : 1 fichier = 1 exercice
+            m = _re.search(r"(20\d{2})", nom)
+            annee = int(m.group(1)) if m else 0
+            exercices.append({
+                "path": path,
+                "nom": nom,
+                "type": "non_pdf",
+                "annee": annee,
+            })
+
+    # Trier par annee decroissante (N en premier)
+    exercices.sort(key=lambda e: e.get("annee", 0), reverse=True)
+    return exercices
 
 
 st.set_page_config(
@@ -57,7 +120,7 @@ st.markdown("L'outil detecte automatiquement le type de document et l'annee.")
 
 pdfs = st.file_uploader(
     "Deposez tous les PDFs ici",
-    type=["pdf"],
+    type=["pdf", "xlsx", "xls", "csv", "fec", "txt"],
     accept_multiple_files=True,
     key="pdfs",
 )
@@ -104,13 +167,14 @@ if pdfs and len(pdfs) >= 2:
 
             # Classer automatiquement
             status.text("Classification des documents...")
-            exercices = build_exercices(paths)
+            exercices = build_exercices_all(paths)
 
             if not exercices:
                 st.error("❌ Aucun exercice detecte")
                 st.stop()
 
-            st.info(f"📊 {len(exercices)} exercice(s) detecte(s) : {', '.join(ex['annee'] for ex in exercices)}")
+            annees_str = ", ".join(str(ex.get("annee", "?")) for ex in exercices)
+            st.info(f"📊 {len(exercices)} exercice(s) detecte(s) : {annees_str}")
             progress.progress(0.2)
 
             # Parser chaque exercice
@@ -120,20 +184,29 @@ if pdfs and len(pdfs) >= 2:
 
                 data = {"actif": {}, "passif": {}, "compte_resultat": {}}
 
-                # Parser le bilan (ou mixte)
-                bilan_path = ex.get("bilan")
-                if bilan_path:
-                    parser = BilanParser(bilan_path)
-                    d = parser.parse_simple(force_ocr=False)
-                    data["actif"] = d.get("actif", {})
-                    data["passif"] = d.get("passif", {})
+                # Cas 1 : non-PDF (Excel, CSV, FEC) -> un seul fichier contient tout
+                if ex.get("type") == "non_pdf" or "path" in ex and not ex.get("bilan") and not ex.get("compte_resultat"):
+                    path = ex.get("path")
+                    if path:
+                        parser = BilanParser(path)
+                        d = parser.parse_simple(force_ocr=False)
+                        data["actif"] = d.get("actif", {})
+                        data["passif"] = d.get("passif", {})
+                        data["compte_resultat"] = d.get("compte_resultat", {})
+                else:
+                    # Cas 2 : PDF -> bilan et/ou compte de resultat separes
+                    bilan_path = ex.get("bilan")
+                    if bilan_path:
+                        parser = BilanParser(bilan_path)
+                        d = parser.parse_simple(force_ocr=False)
+                        data["actif"] = d.get("actif", {})
+                        data["passif"] = d.get("passif", {})
 
-                # Parser le CR (ou mixte)
-                cr_path = ex.get("compte_resultat")
-                if cr_path:
-                    parser = BilanParser(cr_path)
-                    d = parser.parse_simple(force_ocr=False)
-                    data["compte_resultat"] = d.get("compte_resultat", {})
+                    cr_path = ex.get("compte_resultat")
+                    if cr_path:
+                        parser = BilanParser(cr_path)
+                        d = parser.parse_simple(force_ocr=False)
+                        data["compte_resultat"] = d.get("compte_resultat", {})
 
                 bilans_data.append(data)
                 progress.progress(0.2 + (i + 1) / len(exercices) * 0.6)
@@ -263,6 +336,21 @@ if st.session_state.analyse_faite and st.session_state.result:
                 a, b = st.columns([3, 1])
                 with a: st.progress(min(s / 100, 1.0), text=f"{cat.replace('_', ' ').title()}")
                 with b: st.write(f"**{s:.1f}/100**")
+    # Graphiques : Radar + Waterfall
+    st.markdown("---")
+    col_r, col_w = st.columns(2)
+
+    with col_r:
+        fig_radar = radar_scores(result["scores_categories"], "Radar des scores")
+        if fig_radar:
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+    with col_w:
+        poids_pour_graph = PROFILS["moyen_terme"]["poids"]
+        fig_waterfall = waterfall_contributions(result["scores_categories"], poids_pour_graph)
+        if fig_waterfall:
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+
 
     # 4. VALIDATION
     st.markdown("---")

@@ -163,7 +163,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage : python -m src.extraction.doc_detector fichier1.pdf fichier2.pdf ...")
+        print("Usage : python -m src.extraction.outils.detection fichier1.pdf fichier2.pdf ...")
         sys.exit(1)
 
     paths = sys.argv[1:]

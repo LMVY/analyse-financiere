@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 import re
 
-from src.extraction.bilan_parser import BilanParser
+from src.extraction.etats_financiers import BilanParser
 
 
 class MultiYearData:

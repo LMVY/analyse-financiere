@@ -338,7 +338,7 @@ class Validator:
 
 
 if __name__ == "__main__":
-    from src.extraction.bilan_parser import BilanParser
+    from src.extraction.etats_financiers import BilanParser
     from src.analysis.agregats import Agregats
     from src.analysis.ratios import Ratios
 
