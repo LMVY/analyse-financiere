@@ -1,0 +1,50 @@
+tres_court_terme:
+  label: Tres court terme
+  description: Risque de liquidite immediate (< 1 an)
+  poids_categories:
+    liquidite: 0.6
+    endettement: 0.23
+    rentabilite: 0.05
+    croissance: 0.0
+    gestion_activite: 0.05
+    risque_solvabilite: 0.07
+court_terme:
+  label: Court terme
+  description: Capacite de remboursement CT (1-3 ans)
+  poids_categories:
+    liquidite: 0.35
+    endettement: 0.3
+    rentabilite: 0.1
+    croissance: 0.05
+    gestion_activite: 0.1
+    risque_solvabilite: 0.1
+moyen_terme:
+  label: Moyen terme
+  description: Equilibre financier, rentabilite durable (3-7 ans)
+  poids_categories:
+    liquidite: 0.15
+    endettement: 0.35
+    rentabilite: 0.2
+    croissance: 0.15
+    gestion_activite: 0.05
+    risque_solvabilite: 0.1
+long_terme:
+  label: Long terme
+  description: Solvabilite et creation de valeur (7-15 ans)
+  poids_categories:
+    liquidite: 0.1
+    endettement: 0.27
+    rentabilite: 0.25
+    croissance: 0.2
+    gestion_activite: 0.05
+    risque_solvabilite: 0.13
+tres_long_terme:
+  label: Tres long terme
+  description: Perenite et solidite structurelle (> 15 ans)
+  poids_categories:
+    liquidite: 0.05
+    endettement: 0.25
+    rentabilite: 0.25
+    croissance: 0.25
+    gestion_activite: 0.05
+    risque_solvabilite: 0.15

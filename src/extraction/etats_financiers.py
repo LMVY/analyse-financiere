@@ -5,7 +5,9 @@ Regle metier : les 2 dernieres valeurs sont toujours Net N et Net N-1.
 from pathlib import Path
 from typing import Optional
 
-from src.extraction.outils.ocr_tools import OCRExtractor
+from src.extraction.outils.ocr_tools import OCRExtractor  # Tesseract (fallback)
+from src.extraction.outils.rapid_ocr import RapidOCRExtractor  # Tesseract (fallback)
+from src.extraction.outils.rapid_ocr import RapidOCRExtractor
 from src.extraction.outils.pdfplumber_tools import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
 from src.extraction.formats.dgfip_pdf import (
@@ -22,6 +24,14 @@ import pdfplumber
 
 
 # Titres de section a ignorer (ce ne sont pas des postes comptables)
+# Codes agrégés : NE PAS sommer (évite les doublons total_* sur PDF récapitulatif)
+CODES_AGREGES = {
+    "total_actif", "total_passif", "total_capitaux_propres", "actif_immobilise",
+    "total_dettes", "chiffre_affaires", "resultat_net", "total_stocks",
+    "total_creances", "total_immobilisations_brutes", "resultat_exploitation",
+    "total_produits", "total_charges",
+}
+
 STOPWORDS = [
     "dettes",
     "creances",
@@ -49,20 +59,31 @@ SECTION_KEYWORDS = {
 class BilanParser:
     """Parse un PDF de bilan et retourne un dict structure."""
 
-    def __init__(self, pdf_path: str, referentiel_path: str = "config/pcg_referentiel.yaml"):
+    def __init__(self, pdf_path: str, referentiel_path: str = None):
         self.pdf_path = Path(pdf_path)
         if not self.pdf_path.exists():
             raise FileNotFoundError(f"PDF non trouve : {pdf_path}")
         self.normalizer = PCGNormalizer(referentiel_path)
+        self._last_type = None  # 'native' | 'scanned' — mémorisé pour éviter double OCR
 
     def _detect_type(self) -> str:
+        """Detecte si le PDF est natif, scanne, ou mixte."""
         with pdfplumber.open(self.pdf_path) as pdf:
-            total_chars = sum(len(p.chars) for p in pdf.pages)
-            total_pages = len(pdf.pages)
-            avg = total_chars / total_pages if total_pages else 0
-            if avg >= 50:
-                return "native"
-            return "scanned"
+            pages_texte = 0
+            pages_image = 0
+            for page in pdf.pages:
+                chars = len(page.chars)
+                # Une vraie page comptable contient beaucoup de texte (>= 500 char).
+                # En dessous, on considère que c'est une image (scan).
+                if chars >= 500:
+                    pages_texte += 1
+                else:
+                    pages_image += 1
+
+            # Bascule agressive : dès qu'il y a autant d'images que de texte, on OCR
+            if pages_image >= pages_texte and pages_image > 0:
+                return "scanned"
+            return "native"
 
     def parse(self, force_ocr: bool = False, dpi: int = 300) -> dict:
         print("Extraction du texte...")
@@ -70,12 +91,16 @@ class BilanParser:
         print(f"  Type : {pdf_type}")
         print()
 
+        self._last_type = pdf_type  # mémoriser pour parse_simple
+
+        self._last_type = pdf_type
+
         if pdf_type == "native":
             extractor = PDFPlumberExtractor(self.pdf_path)
             rows = extractor.extract_rows()
         else:
-            extractor = OCRExtractor(self.pdf_path)
-            rows = extractor.extract_rows(dpi=dpi)
+            extractor = RapidOCRExtractor()
+            rows = extractor.extract_rows(self.pdf_path, dpi=dpi)
 
         print(f"  {len(rows)} lignes extraites")
         print()
@@ -140,6 +165,17 @@ class BilanParser:
                     k: v for k, v in dgfip_data.get(section, {}).items()
                     if not k.endswith("_n1")
                 }
+            # Si peu de postes extraits -> peut etre DGFiP scanne
+            total_dgfip = sum(len(result[s]) for s in result)
+            if total_dgfip < 20:
+                print(f"  Seulement {total_dgfip} postes DGFiP -> verif DGFiP scanne")
+                try:
+                    from src.extraction.formats.dgfip_pdf import detect_dgfip_ocr
+                    if detect_dgfip_ocr(path_str):
+                        print("  DGFiP SCANNE detecte -> retry via OCR")
+                        return self._parse_dgfip_scanne(path_str)
+                except Exception as e:
+                    print(f"  Detection OCR echouee : {e}")
             return result
 
         # 2. Sinon, parser classique
@@ -148,6 +184,27 @@ class BilanParser:
         for section in ["actif", "passif", "compte_resultat"]:
             selector = ColumnSelector(section)
             result[section] = selector.select_all(data[section])
+
+        # 3. RETRY avec OCR si on a trop peu de postes (seuil relatif ~40% d'un attendu moyen)
+        total_postes = sum(len(result[s]) for s in result)
+        seuil_retry = 25  # Forcer l'OCR plus souvent si extraction native pauvre
+        if total_postes < seuil_retry and not force_ocr and self._last_type != "scanned":
+            print(f"  Seulement {total_postes} postes extraits → retry avec OCR")
+            data_ocr = self.parse(force_ocr=True, dpi=dpi)
+            result_ocr = {}
+            for section in ["actif", "passif", "compte_resultat"]:
+                selector = ColumnSelector(section)
+                result_ocr[section] = selector.select_all(data_ocr[section])
+            total_ocr = sum(len(result_ocr[s]) for s in result_ocr)
+            if total_ocr > total_postes:
+                print(f"  OCR meilleur : {total_ocr} postes")
+                return self._sanity_filter(result_ocr)
+
+        return self._sanity_filter(result)
+
+    def _sanity_filter(self, result: dict) -> dict:
+        """Désactivé : le filtre détruisait des données valides.
+        On garde la signature pour compatibilité."""
         return result
 
     def _parse_rows(self, rows: list) -> dict:
@@ -168,6 +225,26 @@ class BilanParser:
                 continue
 
             if section_courante is None:
+                # OCR : section manquante -> deviner par mots-clés
+                libelle_norm = normalize_text(ligne)
+                if any(k in libelle_norm for k in
+                       ["capital", "reserve", "report a nouveau", "resultat",
+                        "provisions reglementees", "subventions d'investissement",
+                        "total capitaux propres", "dettes fournisseurs",
+                        "dettes fiscales", "emprunts", "total dettes"]):
+                    section_courante = "passif"
+                elif any(k in libelle_norm for k in
+                         ["immobilisations", "stocks", "creances", "clients",
+                          "disponibilites", "total actif", "vmp", "banque",
+                          "constructions", "terrains", "materiel"]):
+                    section_courante = "actif"
+                elif any(k in libelle_norm for k in
+                         ["chiffre d'affaires", "ventes", "achats", "charges",
+                          "produits", "dotations", "resultat d'exploitation",
+                          "resultat net", "interets"]):
+                    section_courante = "compte_resultat"
+
+            if section_courante is None:
                 continue
 
             if self._should_skip(row):
@@ -185,14 +262,20 @@ class BilanParser:
 
             if code_std:
                 code = code_std["code"]
-                # Sommer les montants si le code existe deja
+                # Anti-somme : pour les totaux, garder le max en valeur absolue
                 if code in result[section_courante]:
                     existing = result[section_courante][code]["montants"]
-                    for col, val in montants.items():
-                        if col in existing:
-                            existing[col] += val
-                        else:
-                            existing[col] = val
+                    if code in CODES_AGREGES:
+                        val_new = montants.get("net", 0)
+                        val_old = existing.get("net", 0)
+                        if abs(val_new) > abs(val_old):
+                            result[section_courante][code]["montants"] = montants
+                    else:
+                        for col, val in montants.items():
+                            if col in existing:
+                                existing[col] += val
+                            else:
+                                existing[col] = val
                 else:
                     result[section_courante][code] = {
                         "libelle_original": libelle,
@@ -204,15 +287,30 @@ class BilanParser:
         return result
 
     def _detect_section(self, ligne: str) -> Optional[str]:
+        """Détection tolérante : gère l'OCR bruité et les en-têtes manquants."""
         norm = normalize_text(ligne)
-        if "total" in norm:
+        if not norm:
             return None
-        for section, keywords in SECTION_KEYWORDS.items():
-            for kw in keywords:
-                if norm == kw or norm.startswith(kw + " "):
-                    if section == "actif" and "actif immobilise" in norm:
-                        continue
-                    return section
+        # Trop long = probablement un paragraphe, pas un titre
+        if len(norm) > 60:
+            return None
+        # Exclure les "total *" sauf s'ils introduisent une section
+        if norm.startswith("total ") and "actif" not in norm and "passif" not in norm:
+            return None
+
+        # Compte de résultat (priorité : à tester AVANT "actif"/"passif")
+        if any(k in norm for k in ["compte de resultat", "compte de resultats",
+                                    "produits et charges", "produits et charge"]):
+            return "compte_resultat"
+
+        # Passif : n'importe quel "passif" isolé
+        if "passif" in norm:
+            return "passif"
+
+        # Actif : "actif" seul, ou en début de titre
+        if "actif" in norm and "immobilise" not in norm and "circulant" not in norm:
+            return "actif"
+
         return None
 
     def _should_skip(self, row: list) -> bool:

@@ -152,6 +152,57 @@ class SectorScorer:
         self.details = resultats
         return resultats
 
+    def compute_scores_by_category(self, ratios_config: dict) -> dict:
+        """Retourne les scores par categorie (comme Scorer.compute_all)."""
+        sector_scores = self.compute_sector_scores(ratios_config)
+
+        # Agreger par categorie (moyenne ponderee)
+        par_cat = {}
+        for nom, info in sector_scores.items():
+            cat = info["categorie"]
+            par_cat.setdefault(cat, {"total": 0.0, "poids": 0.0})
+            par_cat[cat]["total"] += info["score"] * info["poids"]
+            par_cat[cat]["poids"] += info["poids"]
+
+        scores_categories = {}
+        for cat, agg in par_cat.items():
+            scores_categories[cat] = round(agg["total"] / agg["poids"], 2) if agg["poids"] > 0 else None
+
+        # Score global (moyenne ponderee des categories)
+        total_score = 0.0
+        total_poids = 0.0
+        for cat, sc in scores_categories.items():
+            if sc is None:
+                continue
+            # Poids de la categorie = somme des poids de ses ratios
+            poids_cat = par_cat[cat]["poids"]
+            total_score += sc * poids_cat
+            total_poids += poids_cat
+
+        score_global = total_score / total_poids if total_poids > 0 else 0.0
+
+        # Details par ratio (format Scorer)
+        details = {}
+        for nom, info in sector_scores.items():
+            details[nom] = {
+                "score": info["score"],
+                "valeur": info["valeur"],
+                "poids": info["poids"],
+                "source": info["source"],
+                "cible": info["cible"],
+                "categorie": info["categorie"],
+                "methode": "sectorielle",
+            }
+
+        return {
+            "score_global": round(score_global, 2),
+            "profil": f"sectoriel_{self.secteur}",
+            "methode": "sectorielle",
+            "scores_categories": scores_categories,
+            "scores_ratios": {n: info["score"] for n, info in sector_scores.items()},
+            "details": details,
+        }
+
 
 if __name__ == "__main__":
     from src.scoring.score import load_config

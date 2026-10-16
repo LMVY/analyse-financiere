@@ -72,7 +72,7 @@ class MultiYearData:
 class MultiYearLoader:
     """Charge plusieurs PDFs et les associe aux exercices."""
 
-    def __init__(self, referentiel_path: str = "config/pcg_referentiel.yaml"):
+    def __init__(self, referentiel_path: str = None):
         self.referentiel_path = referentiel_path
 
     def load_multiple_pdfs(self, pdf_paths: list, force_ocr: bool = False) -> MultiYearData:
@@ -87,7 +87,7 @@ class MultiYearLoader:
             print(f"Chargement : {pdf_path}")
             print(f"{'=' * 60}")
 
-            parser = BilanParser(pdf_path, self.referentiel_path)
+            parser = BilanParser(pdf_path)
             data = parser.parse_simple(force_ocr=force_ocr)
 
             # Detecter l'annee

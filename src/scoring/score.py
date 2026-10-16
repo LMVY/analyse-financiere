@@ -10,36 +10,39 @@ CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "ratios_config.ya
 
 
 def load_config(path=None):
-    """Charge la configuration des ratios depuis le YAML."""
-    p = Path(path) if path else CONFIG_PATH
-    with open(p, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    """Charge la config effective (user > defauts)."""
+    from src.scoring.config_loader import load_effective_config
+    _, ratios = load_effective_config()
+    return ratios
+
+
+def load_profils():
+    """Charge les profils effectifs (user > defauts)."""
+    from src.scoring.config_loader import load_effective_config
+    profils, _ = load_effective_config()
+    return profils
 
 
 PROFILS = {
     "tres_court_terme": {
         "label": "Tres court terme (< 1 an)",
-        "poids": {"liquidite": 0.40, "endettement": 0.20, "rentabilite": 0.10,
-                  "structure_financiere": 0.10, "croissance": 0.05,
-                  "gestion_activite": 0.05, "tresorerie": 0.05, "risque_solvabilite": 0.05},
+        "poids": {"liquidite": 0.40, "endettement": 0.20, "rentabilite": 0.10, "croissance": 0.05,
+                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
     },
     "court_terme": {
         "label": "Court terme (1-3 ans)",
-        "poids": {"liquidite": 0.30, "endettement": 0.25, "rentabilite": 0.15,
-                  "structure_financiere": 0.10, "croissance": 0.05,
-                  "gestion_activite": 0.05, "tresorerie": 0.05, "risque_solvabilite": 0.05},
+        "poids": {"liquidite": 0.30, "endettement": 0.25, "rentabilite": 0.15, "croissance": 0.05,
+                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
     },
     "moyen_terme": {
         "label": "Moyen terme (3-7 ans)",
-        "poids": {"liquidite": 0.15, "endettement": 0.25, "rentabilite": 0.20,
-                  "structure_financiere": 0.15, "croissance": 0.10,
-                  "gestion_activite": 0.05, "tresorerie": 0.05, "risque_solvabilite": 0.05},
+        "poids": {"liquidite": 0.15, "endettement": 0.25, "rentabilite": 0.20, "croissance": 0.10,
+                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
     },
     "long_terme": {
         "label": "Long terme (> 7 ans)",
-        "poids": {"liquidite": 0.05, "endettement": 0.20, "rentabilite": 0.25,
-                  "structure_financiere": 0.20, "croissance": 0.15,
-                  "gestion_activite": 0.05, "tresorerie": 0.05, "risque_solvabilite": 0.05},
+        "poids": {"liquidite": 0.05, "endettement": 0.20, "rentabilite": 0.25, "croissance": 0.15,
+                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
     },
 }
 
@@ -51,7 +54,15 @@ class Scorer:
         self.ratios = ratios
         self.profil = profil
         self.config = load_config(config_path)
-        self.poids = poids_custom if poids_custom else PROFILS[profil]["poids"]
+        # Charger les profils dynamiquement (user > defauts)
+        profils = load_profils()
+        if profil in profils and "poids_categories" in profils[profil]:
+            poids_defaut = profils[profil]["poids_categories"]
+        elif profil in PROFILS:
+            poids_defaut = PROFILS[profil]["poids"]
+        else:
+            poids_defaut = {}
+        self.poids = poids_custom if poids_custom else poids_defaut
         self.scores_ratios = {}
         self.scores_categories = {}
         self.details = {}

@@ -22,6 +22,9 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# --- Config personnelle utilisateur ---
+data/config_user.yaml
+
 # --- Modeles serialises ---
 models/*.pkl
 models/*.joblib
@@ -33,6 +36,18 @@ models/*.json
 test.fec
 test_excel.xlsx
 *.tmp
+test_memoire.txt
+test_en_cours.txt
+debug_page.png
+*.png
+!assets/*.png
+
+# --- Backups ---
+*.bak
+*.backup
+*.old
+*_backup.py
+*_body.py.broken
 
 # --- Config locale et secrets ---
 .env
@@ -53,7 +68,6 @@ Thumbs.db
 *.log
 logs/
 
-# --- Backups ---
-*.bak
-*.backup
-*.old
+# --- Rapports generes ---
+rapport_*.txt
+verification.txt

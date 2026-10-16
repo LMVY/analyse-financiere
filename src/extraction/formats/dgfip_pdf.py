@@ -20,7 +20,14 @@ CODES_DGFIP = {
     "AT": "autres_immobilisations_corporelles",
     "BJ": "total_immobilisations_brutes", "CU": "participations",
     "BD": "autres_titres_immobilises", "BH": "autres_immobilisations_financieres",
-    "BT": "stocks_marchandises", "BX": "creances_clients",
+    "BK": "amortissements_immobilisations",
+    "BL": "stocks_matieres", "BM": "amortissements_stocks_matieres",
+    "BN": "stocks_en_cours_biens", "BO": "amortissements_stocks_en_cours",
+    "BP": "stocks_en_cours_services",
+    "BR": "stocks_produits_finis", "BS": "amortissements_stocks_produits",
+    "BT": "stocks_marchandises", "BU": "amortissements_stocks_marchandises",
+    "BV": "stocks_avances",
+    "BX": "creances_clients",
     "BZ": "autres_creances", "CD": "valeurs_mobilieres_placement",
     "CF": "disponibilites", "CH": "charges_constatees_avance",
     "CJ": "total_actif_circulant", "CO": "total_actif",  # Prendre le Net
@@ -239,3 +246,36 @@ if __name__ == "__main__":
             if val:
                 print(f"  {code:40s} : {val:>15,.0f}")
         print()
+
+
+# ============================================================
+# DETECTION DGFiP dans un PDF SCANNE (via OCR)
+# ============================================================
+def detect_dgfip_ocr(pdf_path):
+    """Verifie si un PDF scanne est une liasse DGFiP.
+
+    Cherche les codes DGFiP dans le texte extrait par OCR.
+    """
+    try:
+        from src.extraction.outils.rapid_ocr import RapidOCRExtractor
+        extractor = RapidOCRExtractor()
+        texte = extractor.extract_text_from_pdf(pdf_path, dpi=200, max_pages=5)
+    except Exception as e:
+        print(f"  OCR detection echouee : {e}")
+        return False
+
+    if not texte:
+        return False
+
+    # Chercher les codes DGFiP dans le texte
+    import re
+    texte_upper = texte.upper()
+    nb_codes = 0
+    for code in CODES_DGFIP.keys():
+        # Chercher le code en tant que mot isole
+        pattern = r"\b" + re.escape(code) + r"\b"
+        if re.search(pattern, texte_upper):
+            nb_codes += 1
+
+    # Si au moins 5 codes DGFiP detectes -> c'est une liasse
+    return nb_codes >= 5

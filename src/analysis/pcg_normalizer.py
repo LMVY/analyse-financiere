@@ -33,7 +33,9 @@ class PCGNormalizer:
 
     SEUIL_FUZZY = 85.0
 
-    def __init__(self, referentiel_path: str = "config/pcg_referentiel.yaml"):
+    def __init__(self, referentiel_path=None):
+        if referentiel_path is None:
+            referentiel_path = Path(__file__).parent.parent.parent / "config" / "pcg_referentiel.yaml"
         self.referentiel_path = Path(referentiel_path)
         with open(self.referentiel_path, "r", encoding="utf-8") as f:
             self.referentiel = yaml.safe_load(f)

@@ -71,7 +71,14 @@ class Agregats:
         # EBE (Excedent Brut d'Exploitation)
         subventions = self._get("cr", "subventions_exploitation")
         impots_taxes = self._get("cr", "impots_taxes")
+
+        # Charges personnel : DGFiP separe salaires et charges sociales
         charges_perso = self._get("cr", "charges_personnel")
+        if charges_perso == 0:
+            charges_perso = (self._get("cr", "salaires_traitements")
+                             + self._get("cr", "charges_sociales"))
+        self.resultats["charges_personnel"] = charges_perso
+
         self.resultats["ebe"] = (
             self.resultats["valeur_ajoutee"]
             + subventions
@@ -98,6 +105,24 @@ class Agregats:
 
         # CAF (approximation : Resultat net + Dotations)
         self.resultats["caf"] = self.resultats["resultat_net"] + dotations
+
+        # --- Exposer les postes bruts necessaires aux ratios ---
+        for k in [
+            "achats_matieres", "achats_marchandises",
+            "variation_stocks_matieres", "variation_stocks_marchandises",
+            "salaires_traitements", "charges_sociales",
+            "interets_charges_assimilees", "charges_cessions_vmp",
+            "total_charges_financieres",
+            "impots_taxes", "subventions_exploitation",
+            "ventes_marchandises", "production_vendue_services",
+            "production_vendue_biens",
+        ]:
+            self.resultats[k] = self._get("cr", k)
+
+        # Achats agreges (utilises par marge_brute + DPO + DSI)
+        self.resultats["achats"] = (
+            self.resultats["achats_matieres"] + self.resultats["achats_marchandises"]
+        )
 
     # ============================================================
     # STRUCTURE FINANCIERE

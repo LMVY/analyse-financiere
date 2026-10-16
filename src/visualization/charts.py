@@ -1,5 +1,9 @@
 """Graphiques Plotly pour le dashboard."""
 import plotly.graph_objects as go
+from src.visualization.colors import (
+    SCORE_COLORS, SCORE_SCALE, CHART, NEUTRAL,
+    get_score_color, get_score_label, get_delta_color,
+)
 import plotly.express as px
 import pandas as pd
 import numpy as np
@@ -238,5 +242,168 @@ def evolution_multi_annees(donnees_par_annee: dict, code: str, label: str):
         xaxis_title="Annee",
         yaxis_title="Euros",
         height=400,
+    )
+    return fig
+
+
+# ============================================================
+# 6. JAUGE CIRCULAIRE DU SCORE GLOBAL
+# ============================================================
+def jauge_score(score, titre="Score global"):
+    """Jauge circulaire coloree pour le score global."""
+    if score is None:
+        return None
+
+    color = get_score_color(score)
+    label = get_score_label(score)
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=score,
+        number={"suffix": "/100", "font": {"size": 42, "color": color}},
+        title={"text": f"<b>{titre}</b><br><span style='font-size:14px;color:{color}'>{label}</span>",
+               "font": {"size": 16}},
+        gauge={
+            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": NEUTRAL["secondaire"]},
+            "bar": {"color": color, "thickness": 0.75},
+            "bgcolor": "white",
+            "borderwidth": 2,
+            "bordercolor": NEUTRAL["bordure"],
+            "steps": [
+                {"range": [0, 30],   "color": "rgba(231, 76, 60, 0.15)"},
+                {"range": [30, 45],  "color": "rgba(230, 126, 34, 0.15)"},
+                {"range": [45, 60],  "color": "rgba(243, 156, 18, 0.15)"},
+                {"range": [60, 75],  "color": "rgba(41, 128, 185, 0.15)"},
+                {"range": [75, 100], "color": "rgba(39, 174, 96, 0.15)"},
+            ],
+            "threshold": {
+                "line": {"color": NEUTRAL["primaire"], "width": 3},
+                "thickness": 0.8,
+                "value": score,
+            },
+        },
+    ))
+
+    fig.update_layout(
+        height=320,
+        margin=dict(l=20, r=20, t=60, b=20),
+        paper_bgcolor="white",
+    )
+    return fig
+
+
+# ============================================================
+# 7. KPI CARD AVEC DELTA
+# ============================================================
+def kpi_card_delta(valeur, delta_pct=None, label="", unite="EUR", inverse=False):
+    """Retourne une figure vide (placeholder pour Streamlit metric).
+
+    On utilise en fait st.metric cote dashboard, mais on garde
+    cette fonction pour l'API uniforme.
+    """
+    return None
+
+
+# ============================================================
+# 8. RADAR AVEC COULEUR SELON MOYENNE
+# ============================================================
+def radar_scores_colore(scores_categories: dict, titre: str = "Scores par categorie"):
+    """Radar avec couleur selon la moyenne."""
+    cats = []
+    vals = []
+    for cat, sc in scores_categories.items():
+        if sc is not None:
+            cats.append(cat.replace("_", " ").title())
+            vals.append(sc)
+
+    if not cats:
+        return None
+
+    moyenne = sum(vals) / len(vals)
+    color = get_score_color(moyenne)
+
+    # Couleur de remplissage (avec transparence)
+    fill_color = color.replace("#", "rgba(").replace(")", "") if False else None
+    # Conversion hex -> rgba
+    hex_color = color.lstrip("#")
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    fill_rgba = f"rgba({r}, {g}, {b}, 0.3)"
+
+    cats_closed = cats + [cats[0]]
+    vals_closed = vals + [vals[0]]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=vals_closed,
+        theta=cats_closed,
+        fill="toself",
+        name="Scores",
+        line_color=color,
+        fillcolor=fill_rgba,
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 100], gridcolor=NEUTRAL["bordure"]),
+            bgcolor=NEUTRAL["fond"],
+        ),
+        showlegend=False,
+        title=f"{titre} — Moyenne : {moyenne:.1f}",
+        height=450,
+        margin=dict(l=80, r=80, t=80, b=40),
+    )
+    return fig
+
+
+# ============================================================
+# 9. WATERFALL AVEC LIGNE CIBLE
+# ============================================================
+def waterfall_contributions_v2(scores_categories: dict, poids: dict, cible=60):
+    """Waterfall avec ligne de cible."""
+    data = []
+    for cat, sc in scores_categories.items():
+        if sc is None:
+            continue
+        poids_cat = poids.get(cat, 0)
+        contribution = sc * poids_cat
+        data.append({
+            "Categorie": cat.replace("_", " ").title(),
+            "Score": sc,
+            "Poids": poids_cat,
+            "Contribution": contribution,
+        })
+
+    if not data:
+        return None
+
+    df = pd.DataFrame(data).sort_values("Contribution", ascending=True)
+
+    # Couleur par barre selon le score
+    colors_bar = [get_score_color(s) for s in df["Score"]]
+
+    fig = go.Figure(go.Bar(
+        x=df["Contribution"],
+        y=df["Categorie"],
+        orientation="h",
+        marker_color=colors_bar,
+        text=[f"{c:.1f} (score {s:.0f})" for c, s in zip(df["Contribution"], df["Score"])],
+        textposition="outside",
+    ))
+
+    # Ligne de cible (60 * poids moyen)
+    fig.add_vline(
+        x=cible * df["Poids"].mean(),
+        line_dash="dash", line_color=NEUTRAL["primaire"],
+        annotation_text=f"Cible ({cible})",
+        annotation_position="top right",
+    )
+
+    fig.update_layout(
+        title="Contribution des categories au score",
+        xaxis_title="Contribution (score x poids)",
+        yaxis_title="",
+        height=450,
+        margin=dict(l=150, r=80, t=60, b=40),
+        plot_bgcolor=NEUTRAL["fond"],
     )
     return fig

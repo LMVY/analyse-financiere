@@ -1,3 +1,4 @@
+import pdfplumber
 """Extraction de texte depuis un PDF scanne via OCR (Tesseract).
 
 Retourne les lignes avec les positions X des cellules.
@@ -11,7 +12,9 @@ from pytesseract import Output
 class OCRExtractor:
     """OCR pour PDFs scannes (images)."""
 
-    CELL_GAP = 30
+    CELL_GAP = 50  # adapté 500 DPI
+    # Config Tesseract optimisée pour les tableaux comptables
+    TESS_CONFIG = "--oem 1 --psm 6 -c preserve_interword_spaces=1"
 
     def __init__(self, pdf_path: str, lang: str = "fra"):
         self.pdf_path = Path(pdf_path)
@@ -19,35 +22,42 @@ class OCRExtractor:
             raise FileNotFoundError(f"PDF non trouve : {pdf_path}")
         self.lang = lang
 
-    def extract_text_from_pdf(self, dpi: int = 300) -> str:
-        print(f"  Conversion PDF -> images (dpi={dpi})...")
-        images = convert_from_path(self.pdf_path, dpi=dpi)
-        print(f"  {len(images)} pages a traiter")
+    def extract_text_from_pdf(self, dpi: int = 500) -> str:
+        import gc
+        with pdfplumber.open(self.pdf_path) as pdf:
+            total = len(pdf.pages)
+        print(f"  OCR streaming {total} pages @ {dpi} DPI")
         texte_total = []
-        for i, image in enumerate(images, 1):
-            print(f"  OCR page {i}/{len(images)}...", end=" ", flush=True)
-            texte = pytesseract.image_to_string(image, lang=self.lang)
+        for i in range(1, total + 1):
+            print(f"  OCR page {i}/{total}...", end=" ", flush=True)
+            images = convert_from_path(self.pdf_path, dpi=dpi,
+                                       first_page=i, last_page=i)
+            img = images[0]
+            texte = pytesseract.image_to_string(img, lang=self.lang, config=self.TESS_CONFIG)
             texte_total.append(f"===== Page {i} =====\n{texte}")
-            print(f"{len(texte)} caracteres")
+            del images, img
+            gc.collect()
+            print(f"{len(texte)} car.")
         return "\n\n".join(texte_total)
 
-    def extract_rows(self, dpi: int = 300) -> list:
+    def extract_rows(self, dpi: int = 500) -> list:
         """Retourne les lignes avec positions X.
-
-        Format : [
-            [("RUBRIQUES", 50), ("BRUT", 200), ("Amort", 300), ...],
-            [("Constructions", 50), ("88 329", 200), ("85 561", 300), ...],
-        ]
-        """
-        print(f"  Conversion PDF -> images (dpi={dpi})...")
-        images = convert_from_path(self.pdf_path, dpi=dpi)
-        print(f"  {len(images)} pages a traiter")
+        Streaming page par page pour limiter la RAM."""
+        import gc
+        with pdfplumber.open(self.pdf_path) as pdf:
+            total = len(pdf.pages)
+        print(f"  OCR streaming {total} pages @ {dpi} DPI")
         all_rows = []
-        for i, image in enumerate(images, 1):
-            print(f"  OCR page {i}/{len(images)}...", end=" ", flush=True)
-            data = pytesseract.image_to_data(image, lang=self.lang, output_type=Output.DICT)
+        for i in range(1, total + 1):
+            print(f"  OCR page {i}/{total}...", end=" ", flush=True)
+            images = convert_from_path(self.pdf_path, dpi=dpi,
+                                       first_page=i, last_page=i)
+            img = images[0]
+            data = pytesseract.image_to_data(img, lang=self.lang, config=self.TESS_CONFIG, output_type=Output.DICT)
             rows = self._group_words_into_rows(data)
             all_rows.extend(rows)
+            del images, img, data
+            gc.collect()
             print(f"{len(rows)} lignes")
         return all_rows
 
@@ -102,14 +112,16 @@ class OCRExtractor:
             rows.append(cells)
         return rows
 
-    def extract_page(self, page_num: int, dpi: int = 300) -> str:
-        images = convert_from_path(
-            self.pdf_path, dpi=dpi,
-            first_page=page_num, last_page=page_num,
-        )
+    def extract_page(self, page_num: int, dpi: int = 500) -> str:
+        import gc
+        images = convert_from_path(self.pdf_path, dpi=dpi,
+                                   first_page=page_num, last_page=page_num)
         if not images:
             return ""
-        return pytesseract.image_to_string(images[0], lang=self.lang)
+        txt = pytesseract.image_to_string(images[0], lang=self.lang, config=self.TESS_CONFIG)
+        del images
+        gc.collect()
+        return txt
 
 
 if __name__ == "__main__":
