@@ -5,9 +5,6 @@ Regle metier : les 2 dernieres valeurs sont toujours Net N et Net N-1.
 from pathlib import Path
 from typing import Optional
 
-from src.extraction.outils.ocr_tools import OCRExtractor  # Tesseract (fallback)
-from src.extraction.outils.rapid_ocr import RapidOCRExtractor  # Tesseract (fallback)
-from src.extraction.outils.rapid_ocr import RapidOCRExtractor
 from src.extraction.outils.pdfplumber_tools import PDFPlumberExtractor
 from src.analysis.pcg_normalizer import PCGNormalizer, normalize_text
 from src.extraction.formats.dgfip_pdf import (
@@ -99,8 +96,10 @@ class BilanParser:
             extractor = PDFPlumberExtractor(self.pdf_path)
             rows = extractor.extract_rows()
         else:
-            extractor = RapidOCRExtractor()
-            rows = extractor.extract_rows(self.pdf_path, dpi=dpi)
+            # PDF scanne : pas d'OCR. On retourne un resultat vide propre.
+            print("  ⚠️  PDF scanne (image) : OCR desactive")
+            print("     → Veuillez fournir le PDF natif ou l'Excel DGFiP")
+            return {"actif": {}, "passif": {}, "compte_resultat": {}}
 
         print(f"  {len(rows)} lignes extraites")
         print()
@@ -165,17 +164,6 @@ class BilanParser:
                     k: v for k, v in dgfip_data.get(section, {}).items()
                     if not k.endswith("_n1")
                 }
-            # Si peu de postes extraits -> peut etre DGFiP scanne
-            total_dgfip = sum(len(result[s]) for s in result)
-            if total_dgfip < 20:
-                print(f"  Seulement {total_dgfip} postes DGFiP -> verif DGFiP scanne")
-                try:
-                    from src.extraction.formats.dgfip_pdf import detect_dgfip_ocr
-                    if detect_dgfip_ocr(path_str):
-                        print("  DGFiP SCANNE detecte -> retry via OCR")
-                        return self._parse_dgfip_scanne(path_str)
-                except Exception as e:
-                    print(f"  Detection OCR echouee : {e}")
             return result
 
         # 2. Sinon, parser classique
@@ -417,3 +405,15 @@ if __name__ == "__main__":
     print("=" * 60)
     print()
     print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+# ============================================================
+# FONCTION D'ENTREE POUR LE VALIDATEUR
+# ============================================================
+def extraire_fichier(chemin: str) -> dict:
+    """Extrait un fichier et retourne {actif, passif, compte_resultat}.
+
+    Point d'entree simplifie pour tester_validateur.py.
+    """
+    parser = BilanParser(chemin)
+    return parser.parse_simple(force_ocr=False)

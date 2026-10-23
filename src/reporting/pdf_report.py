@@ -6,12 +6,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import (
+
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     PageBreak, Image
 )
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-
 
 def fmt_euro(v):
     """Formate un nombre en euros."""
@@ -19,13 +17,11 @@ def fmt_euro(v):
         return "N/A"
     return f"{v:,.0f} EUR".replace(",", " ")
 
-
 def fmt_pct(v):
     """Formate un pourcentage."""
     if v is None:
         return "N/A"
     return f"{v:.1f}%"
-
 
 def get_risk_color(score):
     """Couleur selon le score."""
@@ -40,7 +36,6 @@ def get_risk_color(score):
     else:
         return colors.HexColor("#e74c3c")  # Rouge
 
-
 def get_risk_label(score):
     """Label selon le score."""
     if score >= 75:
@@ -53,7 +48,6 @@ def get_risk_label(score):
         return "Risque tres eleve - Acceptation deconseillee"
     else:
         return "Risque critique - Refus"
-
 
 def generate_pdf_report(
     result: dict,
@@ -241,7 +235,6 @@ def generate_pdf_report(
     pdf_bytes = buffer.getvalue()
     buffer.close()
     return pdf_bytes
-
 
 if __name__ == "__main__":
     print("Module pdf_report.py OK")

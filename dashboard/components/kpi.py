@@ -1,7 +1,5 @@
 """Composants KPI reutilisables (cards custom stylisees)."""
 import streamlit as st
-from src.visualization.colors import get_score_color, get_score_label, get_score_emoji, NEUTRAL
-
 
 def kpi_card(label, valeur, delta_pct=None, unite="EUR", icone="💰", inverse=False, couleur=None):
     """Card KPI stylisee avec ombre, bordure coloree, icone.
@@ -51,7 +49,6 @@ def kpi_card(label, valeur, delta_pct=None, unite="EUR", icone="💰", inverse=F
     </div>
     """, unsafe_allow_html=True)
 
-
 def score_card(score, titre="Score global", methode="standard"):
     """Affiche le score dans une card centree."""
     color = get_score_color(score)
@@ -80,7 +77,6 @@ def score_card(score, titre="Score global", methode="standard"):
     </div>
     """, unsafe_allow_html=True)
 
-
 def score_bar(categorie, score):
     """Barre de score coloree inline."""
     color = get_score_color(score)
@@ -100,7 +96,6 @@ def score_bar(categorie, score):
     </div>
     """, unsafe_allow_html=True)
 
-
 def alerte_banner(niveau, message):
     """Bandeau d'alerte stylise."""
     classes = {
@@ -117,7 +112,6 @@ def alerte_banner(niveau, message):
         f'<div class="alerte-box {classe}">{icone} {message}</div>',
         unsafe_allow_html=True,
     )
-
 
 def section_header(titre, icone="📊", sous_titre=None):
     """En-tete de section."""

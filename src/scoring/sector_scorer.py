@@ -7,15 +7,12 @@ import yaml
 from pathlib import Path
 from typing import Optional
 
-
 SECTOR_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "secteurs_config.yaml"
-
 
 def load_secteurs(path=None):
     p = Path(path) if path else SECTOR_CONFIG_PATH
     with open(p, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
-
 
 def detect_secteur(code_naf: str, secteurs: dict = None) -> Optional[str]:
     """Detecte le secteur a partir du code NAF/APE.
@@ -46,7 +43,6 @@ def detect_secteur(code_naf: str, secteurs: dict = None) -> Optional[str]:
             return cat
 
     return None
-
 
 class SectorScorer:
     """Score les ratios en les comparant au secteur."""
@@ -203,9 +199,7 @@ class SectorScorer:
             "details": details,
         }
 
-
 if __name__ == "__main__":
-    from src.scoring.score import load_config
 
     # Test : detecter le secteur depuis le code NAF
     print("=== DETECTION SECTEUR ===")

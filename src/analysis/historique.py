@@ -5,8 +5,6 @@ Pour chaque ratio :
 - Moyenne sur la période
 - Tendance (hausse/baisse/stable)
 """
-from typing import Optional
-
 
 # Classification des ratios
 RATIOS_STOCK = {
@@ -25,7 +23,6 @@ RATIOS_FLUX = {
     "tresorerie_ca", "couverture_caf_dette",
 }
 
-
 def tendance_ratio(valeurs: list) -> str:
     """Retourne '↗', '↘' ou '→' selon l'evolution."""
     vals = [v for v in valeurs if v is not None]
@@ -36,7 +33,6 @@ def tendance_ratio(valeurs: list) -> str:
     if vals[0] < vals[-1] * 0.95:
         return "↘"
     return "→"
-
 
 def calculer_historique(ratios_par_annee: dict) -> dict:
     """Calcule N / Moyenne / Tendance pour chaque ratio.
@@ -101,7 +97,6 @@ def calculer_historique(ratios_par_annee: dict) -> dict:
         }
 
     return result
-
 
 if __name__ == "__main__":
     # Test rapide

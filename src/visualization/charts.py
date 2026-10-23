@@ -1,13 +1,11 @@
 """Graphiques Plotly pour le dashboard."""
 import plotly.graph_objects as go
-from src.visualization.colors import (
+
     SCORE_COLORS, SCORE_SCALE, CHART, NEUTRAL,
     get_score_color, get_score_label, get_delta_color,
 )
-import plotly.express as px
-import pandas as pd
-import numpy as np
 
+import pandas as pd
 
 # ============================================================
 # 1. RADAR DES SCORES PAR CATEGORIE
@@ -48,7 +46,6 @@ def radar_scores(scores_categories: dict, titre: str = "Scores par categorie"):
         margin=dict(l=80, r=80, t=60, b=40),
     )
     return fig
-
 
 # ============================================================
 # 2. WATERFALL DES CONTRIBUTIONS
@@ -95,7 +92,6 @@ def waterfall_contributions(scores_categories: dict, poids: dict):
         margin=dict(l=150, r=60, t=60, b=40),
     )
     return fig
-
 
 # ============================================================
 # 3. COMPARAISON N vs N-1
@@ -152,7 +148,6 @@ def comparaison_n_n1(agregats_n: dict, agregats_n1: dict):
         legend=dict(orientation="h", y=1.1),
     )
     return fig
-
 
 # ============================================================
 # 4. BENCHMARK SECTORIEL
@@ -215,7 +210,6 @@ def benchmark_sectoriel(ratios: dict, secteur: str, secteurs_config: dict):
     )
     return fig
 
-
 # ============================================================
 # 5. EVOLUTION MULTI-ANNEES
 # ============================================================
@@ -244,7 +238,6 @@ def evolution_multi_annees(donnees_par_annee: dict, code: str, label: str):
         height=400,
     )
     return fig
-
 
 # ============================================================
 # 6. JAUGE CIRCULAIRE DU SCORE GLOBAL
@@ -291,7 +284,6 @@ def jauge_score(score, titre="Score global"):
     )
     return fig
 
-
 # ============================================================
 # 7. KPI CARD AVEC DELTA
 # ============================================================
@@ -302,7 +294,6 @@ def kpi_card_delta(valeur, delta_pct=None, label="", unite="EUR", inverse=False)
     cette fonction pour l'API uniforme.
     """
     return None
-
 
 # ============================================================
 # 8. RADAR AVEC COULEUR SELON MOYENNE
@@ -353,7 +344,6 @@ def radar_scores_colore(scores_categories: dict, titre: str = "Scores par catego
         margin=dict(l=80, r=80, t=80, b=40),
     )
     return fig
-
 
 # ============================================================
 # 9. WATERFALL AVEC LIGNE CIBLE

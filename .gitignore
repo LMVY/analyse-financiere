@@ -71,3 +71,7 @@ logs/
 # --- Rapports generes ---
 rapport_*.txt
 verification.txt
+
+# Baselines de validation
+baseline_*.csv
+baseline_*.txt

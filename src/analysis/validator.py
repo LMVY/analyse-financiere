@@ -4,8 +4,6 @@
 - Niveau 1 (6) : validations de base
 - Niveau 2 (12) : validations comptables
 """
-from typing import Optional
-
 
 class Validator:
     """Valide la coherence des donnees et des ratios."""
@@ -335,7 +333,6 @@ class Validator:
         else:
             self._add("WARN", "18. Analyse verticale",
                       f"{anomalies} poste(s) depassent le total actif")
-
 
 if __name__ == "__main__":
     from src.extraction.etats_financiers import BilanParser

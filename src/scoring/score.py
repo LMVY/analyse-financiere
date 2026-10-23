@@ -2,12 +2,10 @@
 
 Lit la configuration depuis config/ratios_config.yaml.
 """
-import yaml
+
 from pathlib import Path
 
-
 CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "ratios_config.yaml"
-
 
 def load_config(path=None):
     """Charge la config effective (user > defauts)."""
@@ -15,13 +13,11 @@ def load_config(path=None):
     _, ratios = load_effective_config()
     return ratios
 
-
 def load_profils():
     """Charge les profils effectifs (user > defauts)."""
     from src.scoring.config_loader import load_effective_config
     profils, _ = load_effective_config()
     return profils
-
 
 PROFILS = {
     "tres_court_terme": {
@@ -45,7 +41,6 @@ PROFILS = {
                   "gestion_activite": 0.05, "risque_solvabilite": 0.05},
     },
 }
-
 
 class Scorer:
     """Moteur de scoring parametrable (lit le YAML)."""
