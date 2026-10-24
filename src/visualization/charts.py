@@ -1,6 +1,6 @@
 """Graphiques Plotly pour le dashboard."""
 import plotly.graph_objects as go
-
+from src.visualization.colors import (
     SCORE_COLORS, SCORE_SCALE, CHART, NEUTRAL,
     get_score_color, get_score_label, get_delta_color,
 )

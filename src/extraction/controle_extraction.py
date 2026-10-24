@@ -114,6 +114,13 @@ def scorer_extraction(data, parser_utilise: str = "") -> ResultatValidation:
         r.problemes.append("Resultat vide ou invalide")
         return r
 
+    # Statut special : scan non supporte (retour typé par l'orchestrateur)
+    statut_special = data.get("_statut")
+    if statut_special == "scan_non_supporte":
+        r.statut = "scan_non_supporte"
+        r.problemes.append(data.get("_message", "PDF scanne non supporte"))
+        return r
+
     actif = _section(data, "actif")
     passif = _section(data, "passif")
     cr = _section(data, "compte_resultat")
@@ -141,10 +148,19 @@ def scorer_extraction(data, parser_utilise: str = "") -> ResultatValidation:
         r.problemes.append(f"Bilan incomplet (actif={r.nb_actif}, passif={r.nb_passif})")
 
     desequilibre = False
+    non_verifiable = False
     ecart, methode = _calcul_equilibre(actif, passif)
     r.equilibre_ecart_pct, r.equilibre_methode = ecart, methode
+
     if ecart is None:
-        r.problemes.append("Equilibre non verifiable")
+        r.problemes.append("Equilibre non verifiable (totaux introuvables)")
+        non_verifiable = True
+    elif methode == "somme_postes":
+        # Somme approximative : ne pas conclure à un desequilibre reel
+        r.avertissements.append(
+            f"Equilibre estime par somme ({ecart:.1f}%) - non fiable"
+        )
+        non_verifiable = True
     elif ecart < ECART_OK_PCT:
         r.score += POINTS_EQUILIBRE_OK
     elif ecart < ECART_TOLERE_PCT:
@@ -152,8 +168,6 @@ def scorer_extraction(data, parser_utilise: str = "") -> ResultatValidation:
     else:
         desequilibre = True
         r.problemes.append(f"Bilan desequilibre ({ecart:.1f} %)")
-    if methode == "somme_postes":
-        r.avertissements.append("Equilibre estime par somme des postes")
 
     if r.nb_cr >= MIN_POSTES_CR:
         r.score += POINTS_CR_PRESENT

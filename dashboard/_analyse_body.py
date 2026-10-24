@@ -158,6 +158,7 @@ st.markdown("""
 # ============================================================
 try:
     from src.extraction.etats_financiers import BilanParser
+    from src.extraction.controle_extraction import scorer_extraction
     from src.analysis.agregats import Agregats
     from src.analysis.ratios import Ratios
     from src.scoring.score import Scorer, PROFILS, load_config, load_profils
@@ -414,10 +415,45 @@ if fichiers:
             exercices = sorted(exercices, key=lambda e: e.get("annee", 0), reverse=True)
 
             bilans_data = []
+            controles = []
+
             for ex in exercices:
                 p = ex.get("path") or ex.get("bilan")
                 if p:
-                    bilans_data.append(BilanParser(p).parse_simple(force_ocr=False))
+                    data_ex = BilanParser(p).parse_simple(force_ocr=False)
+                    ctrl = scorer_extraction(data_ex, "")
+                    controles.append((Path(p).name, ctrl))
+                    bilans_data.append(data_ex)
+
+            if controles:
+                scans = [(n, c) for n, c in controles if c.statut == "scan_non_supporte"]
+                vides = [(n, c) for n, c in controles if c.statut == "vide"]
+                non_ok = [(n, c) for n, c in controles if c.statut not in ("ok", "vide", "scan_non_supporte")]
+                fichiers_ok = [c for c in controles if c[1].statut == "ok"]
+
+                if not fichiers_ok and (scans or vides):
+                    st.error(
+                        "❌ **Aucun fichier exploitable**\n\n"
+                        + "\n".join(f"- **{n}** : {(c.problemes[0] if c.problemes else c.statut)}"
+                                    for n, c in (scans + vides))
+                        + "\n\n👉 Fournissez le PDF natif ou l'Excel DGFiP."
+                    )
+                    st.stop()
+
+                if non_ok:
+                    with st.expander(f"⚠️ {len(non_ok)} fichier(s) à vérifier", expanded=True):
+                        for n, c in non_ok:
+                            msg = c.problemes[0] if c.problemes else c.statut
+                            st.warning(f"**{n}** — {c.statut} ({c.score}/100) : {msg}")
+
+                if scans and fichiers_ok:
+                    st.info(
+                        f"ℹ️ {len(scans)} PDF scanné(s) ignoré(s) (OCR désactivé) :\n"
+                        + "\n".join(f"- {n}" for n, _ in scans)
+                        + "\n\nAnalyse effectuée sur les fichiers natifs."
+                    )
+
+                st.session_state.controles = controles
 
             if bilans_data:
                 data_n = bilans_data[0]

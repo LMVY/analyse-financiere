@@ -1,0 +1,513 @@
+profils:
+  tres_court_terme:
+    label: Tres court terme
+    description: Risque de liquidite immediate (< 1 an)
+    poids_categories:
+      liquidite: 0.6
+      endettement: 0.23
+      rentabilite: 0.05
+      croissance: 0.0
+      gestion_activite: 0.05
+      risque_solvabilite: 0.07
+  court_terme:
+    label: Court terme
+    description: Capacite de remboursement CT (1-3 ans)
+    poids_categories:
+      liquidite: 0.35
+      endettement: 0.3
+      rentabilite: 0.1
+      croissance: 0.05
+      gestion_activite: 0.1
+      risque_solvabilite: 0.1
+  moyen_terme:
+    label: Moyen terme
+    description: Equilibre financier, rentabilite durable (3-7 ans)
+    poids_categories:
+      liquidite: 0.15
+      endettement: 0.35
+      rentabilite: 0.2
+      croissance: 0.15
+      gestion_activite: 0.05
+      risque_solvabilite: 0.1
+  long_terme:
+    label: Long terme
+    description: Solvabilite et creation de valeur (7-15 ans)
+    poids_categories:
+      liquidite: 0.1
+      endettement: 0.27
+      rentabilite: 0.25
+      croissance: 0.2
+      gestion_activite: 0.05
+      risque_solvabilite: 0.13
+  tres_long_terme:
+    label: Tres long terme
+    description: Perenite et solidite structurelle (> 15 ans)
+    poids_categories:
+      liquidite: 0.05
+      endettement: 0.25
+      rentabilite: 0.25
+      croissance: 0.25
+      gestion_activite: 0.05
+      risque_solvabilite: 0.15
+ratios:
+  categories:
+    liquidite:
+      ratios_actifs:
+      - current_ratio
+      - quick_ratio
+      - cash_ratio
+      - liquidite_immediate
+      - tresorerie_ca
+      - couverture_caf_dette
+    endettement:
+      ratios_actifs:
+      - dette_nette_ebitda
+      - gearing
+      - capacite_desendettement
+      - levier_financier
+      - dette_nette_fonds_propres
+      - autonomie_financiere
+      - equilibre_financier
+    rentabilite:
+      ratios_actifs:
+      - roe
+      - roce
+      - marge_ebitda
+      - marge_nette
+      - roa
+      - marge_operationnelle
+      - marge_brute
+    croissance:
+      ratios_actifs:
+      - croissance_ca
+      - croissance_resultat_net
+      - croissance_ebitda
+      - croissance_capitaux_propres
+      - tcac_ca_3ans
+    gestion_activite:
+      ratios_actifs:
+      - dpo
+      - dsi
+      - rotation_actif
+      - rotation_stocks
+      - rotation_immobilisations
+      - cycle_conversion_tresorerie
+    risque_solvabilite:
+      ratios_actifs:
+      - ratio_solvabilite
+      - ratio_couverture_dettes
+      - ratio_liquidite_large
+  liquidite:
+    current_ratio:
+      poids: 0.53
+      seuils:
+      - 0.5
+      - 1.0
+      - 1.5
+      - 2.0
+      - 3.0
+      sens: hausse_bien
+      source: Bale III (LCR)
+      ref: BIS - Liquidity Coverage Ratio
+      cible: '> 1.5'
+    quick_ratio:
+      poids: 0.49
+      seuils:
+      - 0.3
+      - 0.6
+      - 1.0
+      - 1.5
+      - 2.0
+      sens: hausse_bien
+      source: Bale III (NSFR)
+      ref: BIS - Net Stable Funding Ratio
+      cible: '> 1.0'
+    cash_ratio:
+      poids: 0.63
+      seuils:
+      - 0.05
+      - 0.1
+      - 0.2
+      - 0.5
+      - 1.0
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - Statistiques entreprises
+      cible: '> 0.2'
+    liquidite_immediate:
+      poids: 0.08
+      seuils:
+      - 0.1
+      - 0.3
+      - 0.5
+      - 1.0
+      - 2.0
+      sens: hausse_bien
+      source: Pratique bancaire
+      ref: Comite Bale - LCR
+      cible: '> 0.5'
+    tresorerie_ca:
+      poids: 0.14
+      seuils:
+      - 1
+      - 3
+      - 5
+      - 10
+      - 20
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - Tresorerie / CA
+      cible: '> 5%'
+    couverture_caf_dette:
+      poids: 0.47
+      seuils:
+      - 5
+      - 10
+      - 20
+      - 40
+      - 80
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - CAF / Dettes fin.
+      cible: '> 20%'
+  endettement:
+    dette_nette_ebitda:
+      poids: 0.25
+      seuils:
+      - 0
+      - 1
+      - 2
+      - 3.5
+      - 5
+      sens: baisse_bien
+      source: Pratique bancaire
+      ref: Standard LBO/Private Equity
+      cible: < 3.5
+    gearing:
+      poids: 0.2
+      seuils:
+      - 30
+      - 50
+      - 100
+      - 150
+      - 200
+      sens: baisse_bien
+      source: Banque de France
+      ref: BdF - Centrale des risques
+      cible: < 100%
+    capacite_desendettement:
+      poids: 0.13
+      seuils:
+      - 0.5
+      - 1
+      - 2
+      - 3
+      - 5
+      sens: baisse_bien
+      source: Banque de France
+      ref: BdF - Analyse financiere PME
+      cible: < 3 ans
+    levier_financier:
+      poids: 0.07
+      seuils:
+      - 50
+      - 100
+      - 150
+      - 200
+      - 300
+      sens: baisse_bien
+      source: Banque de France
+      ref: BdF - Ratios sectoriels
+      cible: < 150%
+    dette_nette_fonds_propres:
+      poids: 0.05
+      seuils:
+      - 0
+      - 20
+      - 50
+      - 100
+      - 150
+      sens: baisse_bien
+      source: Banque de France
+      ref: BdF - Centrale des risques
+      cible: < 100%
+    autonomie_financiere:
+      poids: 0.2
+      seuils:
+      - 10
+      - 20
+      - 30
+      - 50
+      - 70
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - Base FIBEN, min 30%
+      cible: '> 30%'
+    equilibre_financier:
+      poids: 0.1
+      seuils:
+      - 0.5
+      - 0.8
+      - 1.0
+      - 1.5
+      - 2.0
+      sens: hausse_bien
+      source: PCG (Plan Comptable General)
+      ref: ANC - FDR > 0
+      cible: '> 1.0'
+  rentabilite:
+    roe:
+      poids: 0.21
+      seuils:
+      - 0
+      - 3
+      - 8
+      - 15
+      - 25
+      sens: hausse_bien
+      source: Damodaran (NYU)
+      ref: Damodaran - Return on Equity datasets
+      cible: '> 8%'
+    roce:
+      poids: 0.21
+      seuils:
+      - 0
+      - 3
+      - 7
+      - 12
+      - 20
+      sens: hausse_bien
+      source: Damodaran (NYU)
+      ref: Damodaran - ROCE by sector
+      cible: '> 7%'
+    marge_ebitda:
+      poids: 0.16
+      seuils:
+      - 2
+      - 5
+      - 10
+      - 15
+      - 25
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Ratios sectoriels ESANE
+      cible: '> 10%'
+    marge_nette:
+      poids: 0.16
+      seuils:
+      - 0
+      - 1
+      - 3
+      - 5
+      - 10
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - Base FIBEN
+      cible: '> 3%'
+    roa:
+      poids: 0.11
+      seuils:
+      - 0
+      - 1
+      - 3
+      - 5
+      - 10
+      sens: hausse_bien
+      source: Damodaran (NYU)
+      ref: Damodaran - ROA by sector
+      cible: '> 3%'
+    marge_operationnelle:
+      poids: 0.11
+      seuils:
+      - 0
+      - 2
+      - 5
+      - 10
+      - 15
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - ESANE (elaboration des statistiques annuelles)
+      cible: '> 5%'
+    marge_brute:
+      poids: 0.04
+      seuils:
+      - 5
+      - 15
+      - 25
+      - 40
+      - 60
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Ratios sectoriels
+      cible: '> 25%'
+  croissance:
+    croissance_ca:
+      poids: 0.4
+      seuils:
+      - -20
+      - -10
+      - 0
+      - 5
+      - 15
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Croissance CA par secteur
+      cible: '> 0%'
+    croissance_resultat_net:
+      poids: 0.25
+      seuils:
+      - -50
+      - -20
+      - 0
+      - 10
+      - 30
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Resultats entreprises
+      cible: '> 0%'
+    croissance_ebitda:
+      poids: 0.2
+      seuils:
+      - -30
+      - -15
+      - 0
+      - 10
+      - 25
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - EBE/EBITDA sectoriel
+      cible: '> 0%'
+    croissance_capitaux_propres:
+      poids: 0.1
+      seuils:
+      - -20
+      - -5
+      - 0
+      - 5
+      - 15
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Fonds propres
+      cible: '> 0%'
+    tcac_ca_3ans:
+      poids: 0.05
+      seuils:
+      - -10
+      - -5
+      - 0
+      - 5
+      - 10
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - TCAC pluriannuel
+      cible: '> 0%'
+  gestion_activite:
+    dpo:
+      poids: 0.3
+      seuils:
+      - 15
+      - 30
+      - 45
+      - 60
+      - 90
+      sens: hausse_bien
+      source: Pratique bancaire
+      ref: Loi LME - delais de paiement
+      cible: '> 30 j'
+    dsi:
+      poids: 0.25
+      seuils:
+      - 15
+      - 30
+      - 60
+      - 90
+      - 120
+      sens: baisse_bien
+      source: INSEE
+      ref: INSEE - Duree ecoulement stocks
+      cible: < 60 j
+    rotation_actif:
+      poids: 0.18
+      seuils:
+      - 0.3
+      - 0.5
+      - 1.0
+      - 1.5
+      - 2.5
+      sens: hausse_bien
+      source: Banque de France
+      ref: BdF - Rotation actif
+      cible: '> 1.0'
+    rotation_stocks:
+      poids: 0.12
+      seuils:
+      - 1
+      - 2
+      - 4
+      - 8
+      - 15
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Rotation stocks
+      cible: '> 4'
+    rotation_immobilisations:
+      poids: 0.08
+      seuils:
+      - 0.3
+      - 0.5
+      - 1.0
+      - 1.5
+      - 2.5
+      sens: hausse_bien
+      source: INSEE
+      ref: INSEE - Intensite capitalistique
+      cible: '> 1.0'
+    cycle_conversion_tresorerie:
+      poids: 0.07
+      seuils:
+      - 0
+      - 30
+      - 60
+      - 90
+      - 120
+      sens: baisse_bien
+      source: Damodaran (NYU)
+      ref: Damodaran - Working capital
+      cible: 30-90 j
+  risque_solvabilite:
+    ratio_solvabilite:
+      poids: 0.3
+      seuils:
+      - 10
+      - 25
+      - 50
+      - 100
+      - 200
+      sens: hausse_bien
+      source: Bale III
+      ref: BIS - Ratio de solvabilite
+      cible: '> 50%'
+    ratio_couverture_dettes:
+      poids: 0.2
+      seuils:
+      - 1.0
+      - 1.2
+      - 1.5
+      - 2.0
+      - 3.0
+      sens: hausse_bien
+      source: Pratique bancaire
+      ref: Covenants bancaires
+      cible: '> 1.5'
+    ratio_liquidite_large:
+      poids: 0.15
+      seuils:
+      - 0.5
+      - 1.0
+      - 1.5
+      - 2.5
+      - 4.0
+      sens: hausse_bien
+      source: Bale III
+      ref: BIS - LCR elargi
+      cible: '> 1.5'
