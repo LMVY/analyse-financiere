@@ -472,17 +472,13 @@ if fichiers:
 
             if controles:
                 non_ok = [(n, c) for n, c in controles if c.statut != "ok"]
-                if non_ok:
-                    with st.expander(f"⚠️ {len(non_ok)} fichier(s) à vérifier", expanded=True):
-                        for n, c in non_ok:
-                            msg = c.problemes[0] if c.problemes else c.statut
-                            st.warning(f"**{n}** — {c.statut} ({c.score}/100) : {msg}")
+                for n, c in non_ok:
+                    msg = c.problemes[0] if c.problemes else c.statut
+                    st.warning(f"**{n}** — {c.statut} ({c.score}/100) : {msg}")
                 st.session_state.controles = controles
 
-            if erreurs:
-                with st.expander(f"{len(erreurs)} fichier(s) en erreur", expanded=True):
-                    for e in erreurs:
-                        st.error(e)
+            for e in erreurs:
+                st.error(e)
 
             if extraits and any(a is None for _, _, _, a, _ in extraits):
                 st.info("Annee non detectee dans le nom d'un fichier : "
