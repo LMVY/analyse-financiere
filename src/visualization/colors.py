@@ -107,13 +107,6 @@ CHART = {
     "texte":      THEME["muted"],
 }
 
-SCORE_SCALE = [
-    [0.00, THEME["bad"]],
-    [0.40, THEME["warn"]],
-    [0.70, THEME["ok"]],
-    [1.00, THEME["ok"]],
-]
-
 
 # ============================================================
 # FONCTIONS UTILITAIRES

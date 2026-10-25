@@ -31,22 +31,6 @@ T = {
 FONT = "'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif"
 
 
-# Couleurs distinctes pour chaque categorie (utilise dans tous les graphiques)
-COULEURS_CATEGORIES = {
-    "liquidite":            "#2B8FE8",   # Bleu
-    "endettement":          "#E85D2B",   # Rouge-orange
-    "rentabilite":          "#1F9D6B",   # Vert
-    "croissance":           "#9B59B6",   # Violet
-    "gestion_activite":     "#F39C12",   # Orange dore
-    "risque_solvabilite":   "#16A085",   # Turquoise
-}
-
-
-def couleur_categorie(cat):
-    """Retourne la couleur d'une categorie (fallback : accent)."""
-    return COULEURS_CATEGORIES.get(cat, "#2B50C8")
-
-
 def hex_rgba(h, a):
     h = h.lstrip("#")
     r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
