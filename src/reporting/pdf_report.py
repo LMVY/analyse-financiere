@@ -506,7 +506,3 @@ def generate_pdf_report(
     pdf_bytes = buffer.getvalue()
     buffer.close()
     return pdf_bytes
-
-
-if __name__ == "__main__":
-    print("Module pdf_report.py OK")

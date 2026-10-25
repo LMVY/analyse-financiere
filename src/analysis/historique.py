@@ -97,23 +97,3 @@ def calculer_historique(ratios_par_annee: dict) -> dict:
         }
 
     return result
-
-if __name__ == "__main__":
-    # Test rapide
-    test = {
-        "2024": {"rentabilite": {"marge_nette": 3.2, "roe": 8.5},
-                 "endettement": {"gearing": 145}},
-        "2023": {"rentabilite": {"marge_nette": 4.1, "roe": 10.2},
-                 "endettement": {"gearing": 138}},
-        "2022": {"rentabilite": {"marge_nette": 3.8, "roe": 9.1},
-                 "endettement": {"gearing": 150}},
-    }
-
-    res = calculer_historique(test)
-
-    print(f"{'Ratio':20s} {'N':>8s} {'Moyenne':>10s} {'Tend.':>6s} {'Type':>8s}")
-    print("-" * 60)
-    for nom, info in sorted(res.items()):
-        n = f"{info['N']:.2f}" if info['N'] is not None else "N/A"
-        m = f"{info['moyenne']:.2f}" if info['moyenne'] is not None else "N/A"
-        print(f"{nom:20s} {n:>8s} {m:>10s} {info['tendance']:>6s} {info['type']:>8s}")

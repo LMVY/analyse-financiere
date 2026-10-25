@@ -333,39 +333,3 @@ class Validator:
         else:
             self._add("WARN", "18. Analyse verticale",
                       f"{anomalies} poste(s) depassent le total actif")
-
-if __name__ == "__main__":
-    from src.extraction.etats_financiers import BilanParser
-    from src.analysis.agregats import Agregats
-    from src.analysis.ratios import Ratios
-
-    parser = BilanParser("data/raw/bilan_annee2.pdf")
-    data = parser.parse_simple(force_ocr=False)
-    parser_cr = BilanParser("data/raw/compte_resultat_annee2.pdf")
-    data_cr = parser_cr.parse_simple(force_ocr=False)
-    data["compte_resultat"] = data_cr.get("compte_resultat", {})
-
-    agg = Agregats(data)
-    agregats = agg.compute_all()
-    r = Ratios(agregats)
-    ratios = r.compute_all()
-
-    v = Validator(agregats, ratios, data)
-    rapport = v.validate_all()
-
-    print("=" * 70)
-    print("RAPPORT DE VALIDATION - 18 TESTS")
-    print("=" * 70)
-    print()
-
-    for item in rapport["rapport"]:
-        sym = {"OK": "[OK]  ", "WARN": "[WARN]", "ERREUR": "[ERR] "}[item["niveau"]]
-        print(f"{sym} {item['test']:40s} : {item['message']}")
-        if item["details"]:
-            print(f"            {item['details']}")
-
-    print()
-    print("=" * 70)
-    s = rapport["stats"]
-    print(f"RESULTATS : {s['succes']} OK | {s['avertissements']} WARN | {s['erreurs']} ERREUR")
-    print("=" * 70)

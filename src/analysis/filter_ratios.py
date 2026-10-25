@@ -73,16 +73,3 @@ def filter_ratios(ratios: dict, nb_exercices: int) -> dict:
                 result[cat][nom] = val
 
     return result
-
-
-if __name__ == "__main__":
-    print("=== Ratios actifs par nb exercices ===\n")
-    for nb in [1, 2, 3, 4, 5]:
-        actifs = get_ratios_actifs(nb)
-        total = sum(len(v) for v in actifs.values())
-        print(f"  {nb} exercice(s) : {total} ratios")
-    print()
-    print("=== Detail a 4 exercices ===")
-    actifs = get_ratios_actifs(4)
-    for cat, liste in actifs.items():
-        print(f"  {cat:25s} : {len(liste)} ratios")

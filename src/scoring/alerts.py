@@ -85,11 +85,3 @@ def format_alerts(alertes: List[Dict]) -> str:
     for a in alertes:
         lines.append(f"[{a['niveau'].upper()}] {a['message']}")
     return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    # Test rapide
-    test_agregats = {"capitaux_propres": -50000, "resultat_net": -10000, "tresorerie": -5000}
-    test_ratios = {"endettement": {"gearing": 250}, "gestion": {"dso": 120}}
-    alerts = detect_alerts(test_agregats, test_ratios)
-    print(format_alerts(alerts))

@@ -131,8 +131,3 @@ def get_delta_color(delta, inverse=False):
     if inverse:
         positif = not positif
     return THEME["ok"] if positif else THEME["bad"]
-
-
-if __name__ == "__main__":
-    for s in [85, 72, 55, 40, 20, None]:
-        print(f"score {s} : {get_score_color(s)} | {get_score_verdict(s)} | {get_score_label(s)}")

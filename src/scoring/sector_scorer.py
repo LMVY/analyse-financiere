@@ -255,20 +255,3 @@ class SectorScorer:
             "scores_ratios": {n: info["score"] for n, info in sector_scores.items()},
             "details": details,
         }
-
-if __name__ == "__main__":
-
-    # Test : detecter le secteur depuis le code NAF
-    print("=== DETECTION SECTEUR ===")
-    for naf in ["C25.99Z", "41.20A", "6201Z", "46.75B", "55.10Z", "68.20A", "M70.22Z"]:
-        secteur = detect_secteur(naf)
-        label = load_secteurs().get(secteur, {}).get("label", "?") if secteur else "INCONNU"
-        print(f"  {naf:12s} -> {secteur} ({label})")
-
-    print()
-    print("=== REFERENCES SECTORIELLES ===")
-    secteurs = load_secteurs()
-    for cat, info in secteurs.items():
-        print(f"\n--- {info['label']} ---")
-        for nom, ref in list(info["ratios"].items())[:3]:
-            print(f"  {nom:25s} : Q1={ref['q1']}, Med={ref['mediane']}, Q3={ref['q3']}")
