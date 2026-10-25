@@ -3,6 +3,7 @@ Dashboard Streamlit - Analyse financière (v2)
 Direction : rapport de gestion clair, aéré, un seul accent, couleurs de statut réservées au sens.
 """
 import sys
+import re
 import tempfile
 from pathlib import Path
 
@@ -156,26 +157,18 @@ st.markdown("""
 # ============================================================
 # 2. IMPORTS MÉTIER
 # ============================================================
-try:
-    from src.extraction.etats_financiers import BilanParser
-    from src.extraction.controle_extraction import scorer_extraction
-    from src.analysis.agregats import Agregats
-    from src.analysis.ratios import Ratios
-    from src.scoring.score import Scorer, PROFILS, load_config, load_profils
-    from src.analysis.validator import Validator
-    from src.analysis.filter_ratios import filter_ratios
-    from src.analysis.historique import calculer_historique
-    from src.scoring.sector_scorer import SectorScorer, detect_secteur, load_secteurs
-    from src.extraction.outils.detection import build_exercices
-    from src.extraction.formats.dgfip_excel import detect_siren_and_name
-    from src.extraction.outils.naf_keywords import detect_secteur_from_nom
-    from src.visualization.charts import (
-        evolution_multi_annees, benchmark_sectoriel,
-    )
-    from src.reporting.pdf_report import generate_pdf_report
-    from src.scoring.alerts import detect_alerts
-except ImportError:
-    pass
+from src.extraction.mistral_docai import DocumentAIExtractor, SECTIONS
+from src.extraction.controle_extraction import scorer_extraction
+from src.analysis.agregats import Agregats
+from src.analysis.ratios import Ratios
+from src.scoring.score import Scorer, PROFILS, load_config, load_profils
+from src.analysis.validator import Validator
+from src.analysis.filter_ratios import filter_ratios
+from src.analysis.historique import calculer_historique
+from src.scoring.sector_scorer import SectorScorer, detect_secteur, load_secteurs
+from src.visualization.charts import evolution_multi_annees, benchmark_sectoriel
+from src.reporting.pdf_report import generate_pdf_report
+from src.scoring.alerts import detect_alerts
 
 
 # ============================================================
@@ -185,6 +178,27 @@ def calculer_croissance(v_n, v_n1):
     if v_n1 and v_n1 != 0 and v_n is not None:
         return (v_n - v_n1) / abs(v_n1) * 100
     return None
+
+
+def scinder_exercices(data: dict) -> tuple:
+    """Data standard Document AI (poste + poste_n1) -> (dict exercice N, dict exercice N-1)."""
+    n, n1 = {}, {}
+    for sec in SECTIONS:
+        n[sec] = {k: v for k, v in data.get(sec, {}).items() if not k.endswith("_n1")}
+        n1[sec] = {k[:-3]: v for k, v in data.get(sec, {}).items() if k.endswith("_n1")}
+    return n, n1
+
+
+def fusionner_exercice(par_annee: dict, cle, data: dict):
+    """Ajoute un exercice ; complete les postes manquants si l'exercice existe deja."""
+    if cle not in par_annee:
+        par_annee[cle] = data
+        return True
+    for sec in SECTIONS:
+        for k, v in data.get(sec, {}).items():
+            par_annee[cle].setdefault(sec, {})
+            par_annee[cle][sec].setdefault(k, v)
+    return False
 
 
 def fmt_eur(v):
@@ -385,8 +399,8 @@ st.markdown("<div style='height:1.25rem'></div>", unsafe_allow_html=True)
 zone = st.expander("Remplacer les documents") if st.session_state.analyse_faite else st.container()
 with zone:
     fichiers = st.file_uploader(
-        "Documents comptables (PDF, Excel DGFiP, FEC, CSV)",
-        type=["pdf", "xlsx", "xls", "csv", "fec"],
+        "Documents comptables (PDF natif ou scanne, JPG, PNG)",
+        type=["pdf", "jpg", "jpeg", "png"],
         accept_multiple_files=True, key="docs",
         label_visibility="visible" if not st.session_state.analyse_faite else "collapsed",
     )
@@ -402,58 +416,82 @@ if fichiers:
                 p.write_bytes(f.read())
                 paths.append(str(p))
 
-            exercices = build_exercices(paths) if any(p.endswith(".pdf") for p in paths) else []
-            if not exercices:
-                import re as _re
-                exercices = []
-                for i, p in enumerate(paths):
-                    m = _re.search(r"(20\d{2})", Path(p).name)
-                    annee = int(m.group(1)) if m else 0
-                    exercices.append({"path": p, "nom": Path(p).name, "type": "non_pdf", "annee": annee})
-                exercices.sort(key=lambda e: e.get("annee", 0), reverse=True)
+            try:
+                extractor = DocumentAIExtractor()
+            except ValueError as e:
+                st.error(str(e))
+                st.stop()
 
-            exercices = sorted(exercices, key=lambda e: e.get("annee", 0), reverse=True)
+            def _annee_fichier(nom):
+                m = re.search(r"(20\d{2})", nom)
+                return int(m.group(1)) if m else None
 
-            bilans_data = []
+            # Du plus recent au plus ancien (annee dans le nom de fichier)
+            fichiers_tri = sorted(zip(fichiers, paths),
+                                  key=lambda x: _annee_fichier(x[0].name) or 0,
+                                  reverse=True)
+
+            extraits = []      # (nom, data_n, data_n1, annee)
             controles = []
+            erreurs = []
 
-            for ex in exercices:
-                p = ex.get("path") or ex.get("bilan")
-                if p:
-                    data_ex = BilanParser(p).parse_simple(force_ocr=False)
-                    ctrl = scorer_extraction(data_ex, "")
-                    controles.append((Path(p).name, ctrl))
-                    bilans_data.append(data_ex)
+            for f, p in fichiers_tri:
+                if Path(p).suffix.lower() not in (".pdf", ".jpg", ".jpeg", ".png"):
+                    erreurs.append(f"{f.name} : format ignore (Document AI lit PDF, JPG, PNG)")
+                    continue
+
+                st.write(f"Extraction Document AI : {f.name}")
+                try:
+                    data_f = extractor.extraire_format_standard(p)
+                except Exception as e:
+                    erreurs.append(f"{f.name} : {e}")
+                    continue
+
+                data_n, data_n1 = scinder_exercices(data_f)
+                controles.append((f.name, scorer_extraction(data_n, "mistral_docai")))
+                extraits.append((f.name, data_n, data_n1, _annee_fichier(f.name)))
+
+            # Fusion par exercice : les donnees N (directes) priment sur les N-1
+            par_annee = {}
+            for direct in (True, False):
+                for nom, data_n, data_n1, annee in extraits:
+                    if direct:
+                        cle = annee if annee else "N"
+                        data = data_n
+                    else:
+                        cle = (annee - 1) if annee else "N-1"
+                        data = data_n1
+                    fusionner_exercice(par_annee, cle, data)
+
+            # Annees numeriques du plus recent au plus ancien, puis libelles (N, N-1)
+            cles = (sorted([c for c in par_annee if isinstance(c, int)], reverse=True)
+                    + [c for c in par_annee if not isinstance(c, int)])
+            bilans_data = [par_annee[c] for c in cles]
+            exercices = [{"path": None, "nom": str(c), "type": "docai", "annee": c}
+                         for c in cles]
 
             if controles:
-                scans = [(n, c) for n, c in controles if c.statut == "scan_non_supporte"]
-                vides = [(n, c) for n, c in controles if c.statut == "vide"]
-                non_ok = [(n, c) for n, c in controles if c.statut not in ("ok", "vide", "scan_non_supporte")]
-                fichiers_ok = [c for c in controles if c[1].statut == "ok"]
-
-                if not fichiers_ok and (scans or vides):
-                    st.error(
-                        "❌ **Aucun fichier exploitable**\n\n"
-                        + "\n".join(f"- **{n}** : {(c.problemes[0] if c.problemes else c.statut)}"
-                                    for n, c in (scans + vides))
-                        + "\n\n👉 Fournissez le PDF natif ou l'Excel DGFiP."
-                    )
-                    st.stop()
-
+                non_ok = [(n, c) for n, c in controles if c.statut != "ok"]
                 if non_ok:
                     with st.expander(f"⚠️ {len(non_ok)} fichier(s) à vérifier", expanded=True):
                         for n, c in non_ok:
                             msg = c.problemes[0] if c.problemes else c.statut
                             st.warning(f"**{n}** — {c.statut} ({c.score}/100) : {msg}")
-
-                if scans and fichiers_ok:
-                    st.info(
-                        f"ℹ️ {len(scans)} PDF scanné(s) ignoré(s) (OCR désactivé) :\n"
-                        + "\n".join(f"- {n}" for n, _ in scans)
-                        + "\n\nAnalyse effectuée sur les fichiers natifs."
-                    )
-
                 st.session_state.controles = controles
+
+            if erreurs:
+                with st.expander(f"{len(erreurs)} fichier(s) en erreur", expanded=True):
+                    for e in erreurs:
+                        st.error(e)
+
+            if extraits and any(a is None for _, _, _, a in extraits):
+                st.info("Annee non detectee dans le nom d'un fichier : "
+                        "ajoutez l'annee au nom pour un historique fiable.")
+
+            if not bilans_data:
+                st.error("Aucun document exploitable apres extraction Document AI.")
+                status.update(label="Echec de l'extraction", state="error")
+                st.stop()
 
             if bilans_data:
                 data_n = bilans_data[0]
@@ -489,23 +527,7 @@ if fichiers:
                 st.session_state.ratios_par_annee = ratios_par_annee
                 st.session_state.historique = historique
 
-                try:
-                    excel_paths = [p for p in paths if p.lower().endswith((".xlsx", ".xls"))]
-                    if excel_paths:
-                        info = detect_siren_and_name(excel_paths[0])
-                        nom = info.get("nom")
-                        if nom:
-                            st.session_state.nom_entreprise = nom
-                            s_code, mots = detect_secteur_from_nom(nom)
-                            if s_code:
-                                st.session_state.secteur_auto_code = s_code
-                                st.session_state.secteur_auto_mots = mots
-                        else:
-                            st.session_state.nom_entreprise = Path(fichiers[0].name).stem
-                    else:
-                        st.session_state.nom_entreprise = Path(fichiers[0].name).stem
-                except Exception:
-                    st.session_state.nom_entreprise = Path(fichiers[0].name).stem
+                st.session_state.nom_entreprise = Path(fichiers_tri[0][0].name).stem
 
                 st.session_state.pdf_bytes = None
                 st.session_state.analyse_faite = True
