@@ -117,6 +117,7 @@ actif:
   - en cours de production de services
   produits_intermediaires:
   - produits intermediaires et finis
+  - produits finis
   stocks_marchandises:
   - stocks de marchandises
   - marchandises
@@ -182,6 +183,8 @@ actif:
   - total actif
   - total de l'actif
   - total general actif
+  - total general
+  - total general (i + ii)
   immobilisations_corporelles:
   - immobilisations corporelles
   - immob corporelles
