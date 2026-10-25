@@ -10,6 +10,11 @@ Palette et bareme de scores importes de src.visualization.colors
 from io import BytesIO
 from datetime import datetime
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
@@ -17,7 +22,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, KeepTogether,
+    PageBreak, KeepTogether, Image as RLImage,
 )
 
 from src.visualization.colors import (
@@ -76,6 +81,136 @@ def _variation(v_n, v_n1):
     if v_n is None or v_n1 is None or abs(v_n1) < 1e-9:
         return None
     return (v_n - v_n1) / abs(v_n1) * 100
+
+
+# ============================================================
+# GRAPHIQUES (matplotlib, palette centrale)
+# ============================================================
+def _style_mpl():
+    """Theme matplotlib aligne sur src.visualization.colors."""
+    plt.rcParams.update({
+        "font.family": "DejaVu Sans",
+        "text.color": THEME["ink"],
+        "axes.edgecolor": THEME["line"],
+        "axes.labelcolor": THEME["muted"],
+        "xtick.color": THEME["muted"],
+        "ytick.color": THEME["muted"],
+        "axes.grid": True,
+        "grid.color": THEME["line"],
+        "grid.linewidth": 0.6,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+    })
+
+
+def _fig_vers_image(fig, width_cm):
+    """Figure matplotlib -> Image reportlab de la largeur donnee."""
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=160, bbox_inches="tight",
+                 facecolor="white")
+    plt.close(fig)
+    buf.seek(0)
+    from PIL import Image as PILImage
+    with PILImage.open(buf) as img:
+        px_w, px_h = img.size
+    buf.seek(0)
+    hauteur = width_cm * px_h / px_w
+    return RLImage(buf, width=width_cm * cm, height=hauteur * cm)
+
+
+def _chart_radar_categories(scores_categories):
+    """Radar des scores par categorie (0-100)."""
+    cats = [(c, v) for c, v in scores_categories.items() if v is not None]
+    if not cats:
+        return None
+    _style_mpl()
+    labels = [_label_categorie(c) for c, _ in cats]
+    vals = [v for _, v in cats]
+    n = len(cats)
+    angles = [i / n * 2 * np.pi for i in range(n)]
+    vals_c = vals + [vals[0]]
+    angles_c = angles + [angles[0]]
+    labels_c = labels + [labels[0]]
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.9),
+                           subplot_kw=dict(polar=True))
+    ax.plot(angles_c, vals_c, color=THEME["accent"], linewidth=2)
+    ax.fill(angles_c, vals_c, color=THEME["accent"], alpha=0.18)
+    ax.set_xticks(angles)
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_ylim(0, 100)
+    ax.set_yticks([25, 50, 75, 100])
+    ax.set_yticklabels(["25", "50", "75", "100"], fontsize=6.5, color=THEME["muted"])
+    ax.grid(color=THEME["line"], linewidth=0.6)
+    ax.spines["polar"].set_color(THEME["line"])
+    ax.set_title("Scores par categorie (/100)",
+                 fontsize=10, color=THEME["ink"], pad=14)
+    return fig
+
+
+def _chart_scores_categories(scores_categories):
+    """Barres horizontales des scores par categorie, colorees par niveau."""
+    cats = sorted([(v, c) for c, v in scores_categories.items() if v is not None])
+    if not cats:
+        return None
+    _style_mpl()
+    labels = [_label_categorie(c) for _, c in cats]
+    vals = [v for v, _ in cats]
+    couleurs = [get_score_color(v) for v in vals]
+
+    fig, ax = plt.subplots(figsize=(4.6, 3.4))
+    bars = ax.barh(labels, vals, color=couleurs, height=0.62)
+    for b, v in zip(bars, vals):
+        ax.text(b.get_width() + 1.5, b.get_y() + b.get_height() / 2,
+                f"{v:.0f}", va="center", fontsize=8.5, color=THEME["ink"])
+    ax.set_xlim(0, 108)
+    ax.set_xticks([0, 25, 50, 75, 100])
+    ax.tick_params(axis="y", labelsize=8.5)
+    ax.set_title("Niveau de chaque categorie", fontsize=10,
+                 color=THEME["ink"], pad=10)
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+def _chart_comparaison_n_n1(agregats_n, agregats_n1):
+    """Barres groupees des agregats cles N vs N-1 (kEUR)."""
+    _style_mpl()
+    indicateurs = [
+        ("chiffre_affaires", "Chiffre d'affaires"),
+        ("ebitda", "EBITDA"),
+        ("resultat_net", "Resultat net"),
+        ("capitaux_propres", "Capitaux propres"),
+        ("total_dettes", "Total dettes"),
+        ("tresorerie", "Tresorerie"),
+    ]
+    labels, vn, vn1 = [], [], []
+    for code, label in indicateurs:
+        a, b = agregats_n.get(code, 0), agregats_n1.get(code, 0)
+        if a or b:
+            labels.append(label)
+            vn.append(a / 1000)
+            vn1.append(b / 1000)
+    if not labels:
+        return None
+
+    fig, ax = plt.subplots(figsize=(7.4, 3.3))
+    y = np.arange(len(labels))
+    h = 0.36
+    ax.barh(y - h / 2, vn, height=h, color=THEME["accent"], label="Exercice N")
+    ax.barh(y + h / 2, vn1, height=h, color="#94A3B8", label="Exercice N-1")
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("kEUR", fontsize=8.5)
+    ax.legend(fontsize=8, loc="lower right", frameon=False)
+    ax.set_title("Agregats cles : exercice N vs exercice N-1 (kEUR)",
+                 fontsize=10.5, color=THEME["ink"], pad=10)
+    ax.grid(axis="y", visible=False)
+    ax.xaxis.set_major_formatter(
+        matplotlib.ticker.FuncFormatter(lambda x, _: f"{x:,.0f}".replace(",", " ")))
+    return fig
 
 
 def _label_categorie(cat):
@@ -324,6 +459,37 @@ def generate_pdf_report(
         story.append(Paragraph(p, body_style))
 
     # ============================================================
+    # VUE D'ENSEMBLE : radar + barres des categories
+    # ============================================================
+    if result.get("scores_categories"):
+        fig_radar = None
+        fig_bars = None
+        try:
+            fig_radar = _chart_radar_categories(result.get("scores_categories", {}))
+        except Exception:
+            fig_radar = None
+        try:
+            fig_bars = _chart_scores_categories(result.get("scores_categories", {}))
+        except Exception:
+            fig_bars = None
+
+        blocs = []
+        if fig_radar:
+            blocs.append(_fig_vers_image(fig_radar, 7.6))
+        if fig_bars:
+            blocs.append(_fig_vers_image(fig_bars, 8.2))
+        if blocs:
+            story.append(Paragraph("Vue d'ensemble du score", h2_style))
+            if len(blocs) == 2:
+                story.append(Table([blocs], colWidths=[8.4 * cm, 8.4 * cm]))
+            else:
+                story.append(blocs[0])
+            story.append(Paragraph(
+                "A gauche : profil par categorie (plus la surface est grande, "
+                "plus la categorie soutient le score). A droite : niveau de "
+                "chaque categorie sur 100.", small_style))
+
+    # ============================================================
     # INDICATEURS CLES N vs N-1
     # ============================================================
     story.append(Paragraph("Indicateurs cles", h2_style))
@@ -353,6 +519,16 @@ def generate_pdf_report(
         story.append(Paragraph(
             "Exercice N-1 non fourni : les variations ne sont pas calculees.",
             small_style))
+
+    # Graphique de comparaison N vs N-1
+    if agregats_n1:
+        try:
+            fig_cmp = _chart_comparaison_n_n1(agregats, agregats_n1)
+            if fig_cmp:
+                story.append(Spacer(1, 0.3 * cm))
+                story.append(_fig_vers_image(fig_cmp, 15.5))
+        except Exception:
+            pass
 
     # ============================================================
     # ANALYSE PAR CATEGORIE

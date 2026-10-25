@@ -17,17 +17,11 @@ import plotly.graph_objects as go
 # ============================================================
 # 1. THÈME
 # ============================================================
-T = {
-    "bg":     "#F5F6F8",
-    "paper":  "#FFFFFF",
-    "ink":    "#101828",
-    "muted":  "#667085",
-    "line":   "#E4E7EC",
-    "accent": "#2B50C8",
-    "ok":     "#1F9D6B",
-    "warn":   "#D98E04",
-    "bad":    "#D64545",
-}
+# 1. THÈME (source unique : src/visualization/colors.py)
+# ============================================================
+from src.visualization.colors import THEME, CATEGORIES
+
+T = dict(THEME)
 FONT = "'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif"
 
 
@@ -150,7 +144,9 @@ from src.analysis.validator import Validator
 from src.analysis.filter_ratios import filter_ratios
 from src.analysis.historique import calculer_historique
 from src.scoring.sector_scorer import SectorScorer, detect_secteur, load_secteurs
-from src.visualization.charts import evolution_multi_annees, benchmark_sectoriel
+from src.visualization.charts import (
+    evolution_multi_annees, benchmark_sectoriel, comparaison_n_n1,
+)
 from src.reporting.pdf_report import generate_pdf_report
 from src.scoring.alerts import detect_alerts
 
@@ -669,7 +665,19 @@ if st.session_state.analyse_faite:
             st.plotly_chart(fig_contrib, use_container_width=True, config={"displayModeBar": False})
 
         if len(st.session_state.get("bilans_data", [])) >= 2:
-            st.markdown('<div class="section-t">Evolution multi-exercices</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-t">Comparaison des agregats N vs N-1 (EUR)</div>',
+                        unsafe_allow_html=True)
+            try:
+                agg_n1_cmp = Agregats(st.session_state.bilans_data[1]).compute_all()
+                fig_cmp = comparaison_n_n1(agg, agg_n1_cmp)
+                if fig_cmp:
+                    st.plotly_chart(fig_cmp, use_container_width=True,
+                                    config={"displayModeBar": False})
+            except Exception as e:
+                st.warning(f"Comparaison indisponible : {e}")
+
+            st.markdown('<div class="section-t">Evolution des indicateurs sur les exercices disponibles (EUR)</div>',
+                        unsafe_allow_html=True)
             try:
                 agregats_par_annee = {}
                 _exs = st.session_state.get("exercices", [])
@@ -680,16 +688,22 @@ if st.session_state.analyse_faite:
                     except Exception:
                         pass
 
-                col_evo1, col_evo2 = st.columns(2, gap="medium")
-                for i, (code_evo, label_evo) in enumerate([
+                indicateurs_evo = [
                     ("chiffre_affaires", "Chiffre d'affaires"),
+                    ("ebitda", "EBITDA"),
                     ("resultat_net", "Resultat net"),
-                ]):
-                    with (col_evo1 if i == 0 else col_evo2):
-                        fig_evo = evolution_multi_annees(agregats_par_annee, code_evo, label_evo)
-                        if fig_evo:
-                            fig_evo = base_layout(fig_evo, 300)
-                            st.plotly_chart(fig_evo, use_container_width=True, config={"displayModeBar": False})
+                    ("capitaux_propres", "Capitaux propres"),
+                ]
+                for row in range(2):
+                    col_g, col_d = st.columns(2, gap="medium")
+                    for col, (code_evo, label_evo) in zip(
+                            (col_g, col_d), indicateurs_evo[row * 2:row * 2 + 2]):
+                        with col:
+                            fig_evo = evolution_multi_annees(agregats_par_annee, code_evo, label_evo)
+                            if fig_evo:
+                                fig_evo = base_layout(fig_evo, 300)
+                                st.plotly_chart(fig_evo, use_container_width=True,
+                                                config={"displayModeBar": False})
             except Exception as e:
                 st.warning(f"Evolution indisponible : {e}")
 

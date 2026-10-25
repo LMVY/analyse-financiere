@@ -14,15 +14,16 @@ Regles :
 # THEME (aligne sur le dashboard : _analyse_body.py)
 # ============================================================
 THEME = {
-    "bg":     "#F5F6F8",   # fond de page
+    "bg":     "#F8FAFC",   # fond de page (slate 50)
     "paper":  "#FFFFFF",   # surfaces (cartes, tables)
-    "ink":    "#101828",   # texte principal
-    "muted":  "#667085",   # texte secondaire
-    "line":   "#E4E7EC",   # bordures, grilles
-    "accent": "#2B50C8",   # couleur d'accent (exercice N, series principales)
-    "ok":     "#1F9D6B",   # statut positif
-    "warn":   "#D98E04",   # statut vigilance
-    "bad":    "#D64545",   # statut negatif
+    "ink":    "#0F172A",   # texte principal (slate 900)
+    "muted":  "#64748B",   # texte secondaire (slate 500)
+    "line":   "#E2E8F0",   # bordures, grilles (slate 200)
+    "accent": "#4F46E5",   # indigo - accent principal, exercice N
+    "ok":     "#059669",   # emeraude - statut positif
+    "warn":   "#D97706",   # ambre - statut vigilance
+    "bad":    "#DC2626",   # rouge - statut negatif
+    "accent2": "#818CF8",  # indigo clair - series secondaires
 }
 
 # ============================================================
@@ -81,12 +82,12 @@ def get_score_label(score):
 # CATEGORIES (une couleur par categorie, graphs multi-series)
 # ============================================================
 CATEGORIES = {
-    "liquidite":          "#2B8FE8",   # Bleu
-    "endettement":        "#E85D2B",   # Rouge-orange
-    "rentabilite":        "#1F9D6B",   # Vert
-    "croissance":         "#9B59B6",   # Violet
-    "gestion_activite":   "#F39C12",   # Orange dore
-    "risque_solvabilite": "#16A085",   # Turquoise
+    "liquidite":          "#0EA5E9",   # Bleu ciel
+    "endettement":        "#E11D48",   # Framboise
+    "rentabilite":        "#10B981",   # Emeraude
+    "croissance":         "#8B5CF6",   # Violet
+    "gestion_activite":   "#F59E0B",   # Ambre
+    "risque_solvabilite": "#14B8A6",   # Turquoise
 }
 
 
@@ -100,7 +101,7 @@ def get_categorie_color(cat):
 # ============================================================
 CHART = {
     "n":          THEME["accent"],       # exercice N
-    "n1":         "#98A2B3",             # exercice N-1 (neutre)
+    "n1":         "#94A3B8",             # exercice N-1 (neutre)
     "cible":      THEME["ink"],          # lignes de cible / mediane
     "radar":      THEME["accent"],
     "grid":       THEME["line"],

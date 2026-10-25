@@ -98,8 +98,63 @@ def evolution_multi_annees(donnees_par_annee: dict, code: str, label: str):
     ))
 
     fig.update_layout(
-        title=dict(text=f"Evolution de {label}", font=dict(color=THEME["ink"])),
-        xaxis_title="Annee",
+        title=dict(text=f"Evolution de {label} par exercice (EUR)",
+                   font=dict(color=THEME["ink"])),
+        xaxis_title="Exercice",
         yaxis_title="Euros",
     )
     return base_layout(fig, 300)
+
+
+# ============================================================
+# COMPARAISON N vs N-1
+# ============================================================
+def comparaison_n_n1(agregats_n: dict, agregats_n1: dict):
+    """Barres groupees : agregats cles de l'exercice N vs N-1 (en kEUR)."""
+    indicateurs = [
+        ("chiffre_affaires", "Chiffre d'affaires"),
+        ("valeur_ajoutee", "Valeur ajoutee"),
+        ("ebitda", "EBITDA"),
+        ("resultat_net", "Resultat net"),
+        ("capitaux_propres", "Capitaux propres"),
+        ("total_dettes", "Total dettes"),
+    ]
+
+    labels, vals_n, vals_n1 = [], [], []
+    for code, label in indicateurs:
+        v_n = agregats_n.get(code, 0)
+        v_n1 = agregats_n1.get(code, 0)
+        if v_n or v_n1:
+            labels.append(label)
+            vals_n.append(v_n)
+            vals_n1.append(v_n1)
+
+    if not labels:
+        return None
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="Exercice N",
+        x=labels,
+        y=vals_n,
+        marker_color=CHART["n"],
+        text=[f"{v/1000:,.0f} k".replace(",", " ") for v in vals_n],
+        textposition="outside",
+    ))
+    fig.add_trace(go.Bar(
+        name="Exercice N-1",
+        x=labels,
+        y=vals_n1,
+        marker_color=CHART["n1"],
+        text=[f"{v/1000:,.0f} k".replace(",", " ") for v in vals_n1],
+        textposition="outside",
+    ))
+
+    fig.update_layout(
+        title=dict(text="Agregats cles : exercice N vs N-1 (kEUR)",
+                   font=dict(color=THEME["ink"])),
+        barmode="group",
+        yaxis_title="Euros",
+        legend=dict(orientation="h", y=1.1),
+    )
+    return base_layout(fig, 420)
