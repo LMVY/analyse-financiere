@@ -99,12 +99,19 @@ class SectorScorer:
         self.scores_ratios = {}
         self.details = {}
 
-    def _get_sector_ref(self, nom_ratio: str) -> Optional[dict]:
+    def _get_ratio_ref(self, nom_ratio: str) -> Optional[dict]:
         """Recupere les references sectorielles pour un ratio."""
         if not self.secteur or self.secteur not in self.secteurs:
             return None
         ratios_secteur = self.secteurs[self.secteur].get("ratios", {})
         return ratios_secteur.get(nom_ratio)
+
+    def _est_desactive(self, nom_ratio: str) -> bool:
+        """Un ratio desactive n'est pas pertinent pour ce secteur."""
+        if not self.secteur or self.secteur not in self.secteurs:
+            return False
+        desactives = self.secteurs[self.secteur].get("ratios_desactives") or []
+        return nom_ratio in desactives
 
     def _score_vs_sector(self, nom_ratio: str, valeur: float, sens: str) -> Optional[float]:
         """Note un ratio par rapport au secteur.
@@ -114,7 +121,7 @@ class SectorScorer:
         - Q2  = mediane
         - Q3  = 75e percentile (bon)
         """
-        ref = self._get_sector_ref(nom_ratio)
+        ref = self._get_ratio_ref(nom_ratio)
         if not ref:
             return None
 
@@ -128,6 +135,9 @@ class SectorScorer:
                 # 0 a 40
                 if q1 > 0:
                     return max(0, (valeur / q1) * 40)
+                if q1 < 0:
+                    # Q1 negatif (ex croissance) : mappe [2*Q1, Q1] -> [0, 40]
+                    return max(0, min(40, (valeur - 2 * q1) / (-q1) * 40))
                 return 0
             elif valeur <= med:
                 # 40 a 60
@@ -170,6 +180,8 @@ class SectorScorer:
             for nom, valeur in ratio_dict.items():
                 if valeur is None:
                     continue
+                if self._est_desactive(nom):
+                    continue
                 cfg = ratios_config[cat].get(nom)
                 if not cfg:
                     continue
@@ -186,7 +198,7 @@ class SectorScorer:
                         "source": cfg.get("source", ""),
                         "cible": cfg.get("cible", ""),
                         "categorie": cat,
-                        "ref_secteur": self._get_sector_ref(nom),
+                        "ref_secteur": self._get_ratio_ref(nom),
                         "methode": "sectorielle",
                     }
 
