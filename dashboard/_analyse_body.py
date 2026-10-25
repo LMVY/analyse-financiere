@@ -384,10 +384,17 @@ with h_pdf:
     if st.session_state.analyse_faite:
         if st.button("Exporter en PDF", type="primary", use_container_width=True):
             try:
+                bilans = st.session_state.get("bilans_data", [])
+                agg_n1 = (Agregats(bilans[1]).compute_all()
+                          if len(bilans) >= 2 else None)
                 st.session_state.pdf_bytes = generate_pdf_report(
-                    result=st.session_state.result, agregats=st.session_state.agregats,
-                    validation=st.session_state.validation, alertes=st.session_state.alertes,
+                    result=st.session_state.result,
+                    agregats=st.session_state.agregats,
+                    agregats_n1=agg_n1,
+                    validation=st.session_state.validation,
+                    alertes=st.session_state.alertes,
                     company_name=st.session_state.get("nom_entreprise") or "Entreprise analysee",
+                    secteur_label=st.session_state.result.get("secteur_label"),
                 )
             except Exception as e:
                 st.session_state.pdf_bytes = None

@@ -1,128 +1,145 @@
-"""Palette de couleurs centralisee pour tout le dashboard.
+"""Palette de couleurs centralisee pour tout le projet.
 
-Regle : un score suit TOUJOURS ce bareme, partout.
+Source unique de verite : le dashboard, charts.py et pdf_report.py
+importent tous depuis ce module. Toute evolution se fait ici.
+
+Regles :
+- un score suit TOUJOURS le meme bareme partout (3 couleurs) ;
+- l'exercice N est accent, l'exercice N-1 est neutre/gris ;
+- les couleurs de statut (ok/warn/bad) sont reservees au sens,
+  jamais a la decoration.
 """
 
 # ============================================================
-# PALETTE SCORE (5 niveaux)
+# THEME (aligne sur le dashboard : _analyse_body.py)
 # ============================================================
+THEME = {
+    "bg":     "#F5F6F8",   # fond de page
+    "paper":  "#FFFFFF",   # surfaces (cartes, tables)
+    "ink":    "#101828",   # texte principal
+    "muted":  "#667085",   # texte secondaire
+    "line":   "#E4E7EC",   # bordures, grilles
+    "accent": "#2B50C8",   # couleur d'accent (exercice N, series principales)
+    "ok":     "#1F9D6B",   # statut positif
+    "warn":   "#D98E04",   # statut vigilance
+    "bad":    "#D64545",   # statut negatif
+}
+
+# ============================================================
+# SCORES (3 niveaux, partout identiques)
+# ============================================================
+SEUIL_SOLIDE = 70
+SEUIL_SURVEILLANCE = 40
+
 SCORE_COLORS = {
-    "excellent": "#27ae60",   # >= 75  Vert emeraude
-    "bon":       "#2980b9",   # >= 60  Bleu
-    "moyen":     "#f39c12",   # >= 45  Orange
-    "faible":    "#e67e22",   # >= 30  Orange fonce
-    "critique":  "#e74c3c",   # <  30  Rouge
+    "solide":     THEME["ok"],
+    "surveiller": THEME["warn"],
+    "fragile":    THEME["bad"],
 }
 
-# Palette continue pour degrades
-SCORE_SCALE = [
-    [0.00, "#e74c3c"],  # 0   Rouge
-    [0.30, "#e67e22"],  # 30  Orange fonce
-    [0.45, "#f39c12"],  # 45  Orange
-    [0.60, "#2980b9"],  # 60  Bleu
-    [0.75, "#27ae60"],  # 75  Vert
-    [1.00, "#27ae60"],  # 100 Vert
-]
+
+def get_score_color(score):
+    """Couleur d'un score (0-100), meme bareme que le dashboard."""
+    if score is None:
+        return THEME["muted"]
+    if score >= SEUIL_SOLIDE:
+        return SCORE_COLORS["solide"]
+    if score >= SEUIL_SURVEILLANCE:
+        return SCORE_COLORS["surveiller"]
+    return SCORE_COLORS["fragile"]
+
+
+def get_score_verdict(score):
+    """Verdict court d'un score (aligne sur le dashboard)."""
+    if score is None:
+        return "Non evaluable"
+    if score >= SEUIL_SOLIDE:
+        return "Situation solide"
+    if score >= SEUIL_SURVEILLANCE:
+        return "Situation a surveiller"
+    return "Situation fragile"
+
+
+def get_score_label(score):
+    """Label nuance (5 niveaux) pour les tableaux detailles."""
+    if score is None:
+        return "N/A"
+    if score >= 80:
+        return "Excellent"
+    if score >= 70:
+        return "Bon"
+    if score >= 55:
+        return "Moyen +"
+    if score >= 40:
+        return "Moyen -"
+    if score >= 25:
+        return "Faible"
+    return "Critique"
+
 
 # ============================================================
-# COULEURS NEUTRES
+# CATEGORIES (une couleur par categorie, graphs multi-series)
 # ============================================================
-NEUTRAL = {
-    "primaire":   "#2c3e50",   # Bleu nuit (titres)
-    "secondaire": "#7f8c8d",   # Gris ardoise
-    "fond":       "#f8f9fa",   # Gris tres clair
-    "bordure":    "#dee2e6",   # Gris bordure
-    "texte":      "#212529",   # Noir doux
+CATEGORIES = {
+    "liquidite":          "#2B8FE8",   # Bleu
+    "endettement":        "#E85D2B",   # Rouge-orange
+    "rentabilite":        "#1F9D6B",   # Vert
+    "croissance":         "#9B59B6",   # Violet
+    "gestion_activite":   "#F39C12",   # Orange dore
+    "risque_solvabilite": "#16A085",   # Turquoise
 }
+
+
+def get_categorie_color(cat):
+    """Couleur d'une categorie (fallback : accent)."""
+    return CATEGORIES.get(cat, THEME["accent"])
+
 
 # ============================================================
 # COULEURS POUR GRAPHES
 # ============================================================
 CHART = {
-    "n":          "#3498db",   # Bleu (exercice N)
-    "n1":         "#95a5a6",   # Gris (exercice N-1)
-    "positif":    "#27ae60",   # Vert
-    "negatif":    "#e74c3c",   # Rouge
-    "cible":      "#2c3e50",   # Ligne cible
-    "radar":      "rgba(52, 152, 219, 0.3)",
-    "radar_line": "#3498db",
+    "n":          THEME["accent"],       # exercice N
+    "n1":         "#98A2B3",             # exercice N-1 (neutre)
+    "cible":      THEME["ink"],          # lignes de cible / mediane
+    "radar":      THEME["accent"],
+    "grid":       THEME["line"],
+    "texte":      THEME["muted"],
 }
+
+SCORE_SCALE = [
+    [0.00, THEME["bad"]],
+    [0.40, THEME["warn"]],
+    [0.70, THEME["ok"]],
+    [1.00, THEME["ok"]],
+]
+
 
 # ============================================================
 # FONCTIONS UTILITAIRES
 # ============================================================
-def get_score_color(score):
-    """Retourne la couleur hex selon le score (0-100)."""
-    if score is None:
-        return NEUTRAL["secondaire"]
-    if score >= 75:
-        return SCORE_COLORS["excellent"]
-    elif score >= 60:
-        return SCORE_COLORS["bon"]
-    elif score >= 45:
-        return SCORE_COLORS["moyen"]
-    elif score >= 30:
-        return SCORE_COLORS["faible"]
-    else:
-        return SCORE_COLORS["critique"]
-
-
-def get_score_label(score):
-    """Retourne le label selon le score."""
-    if score is None:
-        return "N/A"
-    if score >= 75:
-        return "Excellent"
-    elif score >= 60:
-        return "Bon"
-    elif score >= 45:
-        return "Moyen"
-    elif score >= 30:
-        return "Faible"
-    else:
-        return "Critique"
-
-
-def get_score_emoji(score):
-    """Retourne un emoji selon le score."""
-    if score is None:
-        return "⚪"
-    if score >= 75:
-        return "🟢"
-    elif score >= 60:
-        return "🔵"
-    elif score >= 45:
-        return "🟠"
-    elif score >= 30:
-        return "🟧"
-    else:
-        return "🔴"
+def hex_rgba(h, a):
+    """'#1F9D6B', 0.3 -> 'rgba(31,157,107,0.3)'."""
+    h = h.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{a})"
 
 
 def get_delta_color(delta, inverse=False):
-    """Couleur selon variation.
+    """Couleur selon une variation.
 
     Args:
         delta: variation (positive ou negative)
         inverse: si True, une baisse est bonne (ex: gearing)
     """
     if delta is None:
-        return NEUTRAL["secondaire"]
+        return THEME["muted"]
     positif = delta > 0
     if inverse:
         positif = not positif
-    return CHART["positif"] if positif else CHART["negatif"]
-
-
-def format_score_badge(score):
-    """Retourne un badge colore pour un score."""
-    color = get_score_color(score)
-    emoji = get_score_emoji(score)
-    return f"{emoji} **{score:.1f}**/100"
+    return THEME["ok"] if positif else THEME["bad"]
 
 
 if __name__ == "__main__":
-    # Test
-    print("=== Tests ===")
-    for s in [80, 65, 50, 35, 20, None]:
-        print(f"  Score {s} : {get_score_color(s)} | {get_score_label(s)} | {get_score_emoji(s)}")
+    for s in [85, 72, 55, 40, 20, None]:
+        print(f"score {s} : {get_score_color(s)} | {get_score_verdict(s)} | {get_score_label(s)}")

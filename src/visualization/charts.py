@@ -1,11 +1,31 @@
-"""Graphiques Plotly pour le dashboard."""
+"""Graphiques Plotly pour le dashboard.
+
+Toutes les couleurs viennent de src.visualization.colors (source unique).
+"""
 import plotly.graph_objects as go
 from src.visualization.colors import (
-    SCORE_COLORS, SCORE_SCALE, CHART, NEUTRAL,
-    get_score_color, get_score_label, get_delta_color,
+    THEME, CHART, CATEGORIES,
+    get_score_color, get_score_verdict, get_categorie_color, hex_rgba,
 )
 
 import pandas as pd
+
+
+def base_layout(fig, height=420):
+    """Habillage commun : fond transparent, grilles et polices du theme."""
+    fig.update_layout(
+        height=height,
+        margin=dict(l=16, r=16, t=48, b=16),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=THEME["muted"], size=12),
+    )
+    fig.update_xaxes(gridcolor=CHART["grid"], zerolinecolor=CHART["grid"],
+                     linecolor=CHART["grid"])
+    fig.update_yaxes(gridcolor=CHART["grid"], zerolinecolor=CHART["grid"],
+                     linecolor=CHART["grid"])
+    return fig
+
 
 # ============================================================
 # 1. RADAR DES SCORES PAR CATEGORIE
@@ -32,26 +52,28 @@ def radar_scores(scores_categories: dict, titre: str = "Scores par categorie"):
         theta=cats_closed,
         fill="toself",
         name="Scores",
-        line_color="rgb(52, 152, 219)",
-        fillcolor="rgba(52, 152, 219, 0.3)",
+        line=dict(color=CHART["radar"], width=2),
+        fillcolor=hex_rgba(CHART["radar"], 0.14),
     ))
 
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100], gridcolor="lightgray"),
+            radialaxis=dict(visible=True, range=[0, 100],
+                            gridcolor=CHART["grid"], linecolor=CHART["grid"]),
+            angularaxis=dict(gridcolor=CHART["grid"], linecolor=CHART["grid"]),
+            bgcolor="rgba(0,0,0,0)",
         ),
         showlegend=False,
-        title=titre,
-        height=450,
-        margin=dict(l=80, r=80, t=60, b=40),
+        title=dict(text=titre, font=dict(color=THEME["ink"])),
     )
-    return fig
+    return base_layout(fig, 420)
+
 
 # ============================================================
 # 2. WATERFALL DES CONTRIBUTIONS
 # ============================================================
 def waterfall_contributions(scores_categories: dict, poids: dict):
-    """Waterfall des contributions de chaque categorie au score global."""
+    """Barres horizontales des contributions de chaque categorie au score global."""
     data = []
     for cat, sc in scores_categories.items():
         if sc is None:
@@ -74,24 +96,19 @@ def waterfall_contributions(scores_categories: dict, poids: dict):
         x=df["Contribution"],
         y=df["Categorie"],
         orientation="h",
-        marker=dict(
-            color=df["Score"],
-            colorscale="RdYlGn",
-            cmin=0, cmax=100,
-            colorbar=dict(title="Score"),
-        ),
+        marker=dict(color=[get_score_color(s) for s in df["Score"]]),
         text=[f"{c:.1f}" for c in df["Contribution"]],
         textposition="outside",
     ))
 
     fig.update_layout(
-        title="Contribution des categories au score global",
+        title=dict(text="Contribution des categories au score global",
+                   font=dict(color=THEME["ink"])),
         xaxis_title="Contribution (score x poids)",
         yaxis_title="",
-        height=450,
-        margin=dict(l=150, r=60, t=60, b=40),
     )
-    return fig
+    return base_layout(fig, 420)
+
 
 # ============================================================
 # 3. COMPARAISON N vs N-1
@@ -127,7 +144,7 @@ def comparaison_n_n1(agregats_n: dict, agregats_n1: dict):
         name="N",
         x=labels,
         y=vals_n,
-        marker_color="rgb(52, 152, 219)",
+        marker_color=CHART["n"],
         text=[f"{v/1000:.0f} k" for v in vals_n],
         textposition="outside",
     ))
@@ -135,19 +152,19 @@ def comparaison_n_n1(agregats_n: dict, agregats_n1: dict):
         name="N-1",
         x=labels,
         y=vals_n1,
-        marker_color="rgb(231, 76, 60)",
+        marker_color=CHART["n1"],
         text=[f"{v/1000:.0f} k" for v in vals_n1],
         textposition="outside",
     ))
 
     fig.update_layout(
-        title="Comparaison N vs N-1",
+        title=dict(text="Comparaison N vs N-1", font=dict(color=THEME["ink"])),
         barmode="group",
-        height=450,
         yaxis_title="Euros",
         legend=dict(orientation="h", y=1.1),
     )
-    return fig
+    return base_layout(fig, 420)
+
 
 # ============================================================
 # 4. BENCHMARK SECTORIEL
@@ -191,24 +208,27 @@ def benchmark_sectoriel(ratios: dict, secteur: str, secteurs_config: dict):
         x=df["Ratio"],
         y=df["Indice"],
         marker_color=[
-            "green" if i >= 100 else ("orange" if i >= 80 else "red")
+            THEME["ok"] if i >= 100 else (THEME["warn"] if i >= 80 else THEME["bad"])
             for i in df["Indice"]
         ],
         text=[f"{v:.0f}" for v in df["Indice"]],
         textposition="outside",
     ))
 
-    fig.add_hline(y=100, line_dash="dash", line_color="black",
+    fig.add_hline(y=100, line_dash="dash", line_color=CHART["cible"],
                   annotation_text="Mediane secteur")
 
     fig.update_layout(
-        title=f"Benchmark sectoriel ({secteurs_config[secteur].get('label', secteur)})",
+        title=dict(
+            text=f"Benchmark sectoriel ({secteurs_config[secteur].get('label', secteur)})",
+            font=dict(color=THEME["ink"]),
+        ),
         yaxis_title="Indice (100 = mediane)",
-        height=450,
         xaxis_tickangle=-45,
         showlegend=False,
     )
-    return fig
+    return base_layout(fig, 450)
+
 
 # ============================================================
 # 5. EVOLUTION MULTI-ANNEES
@@ -227,17 +247,17 @@ def evolution_multi_annees(donnees_par_annee: dict, code: str, label: str):
         y=vals,
         mode="lines+markers",
         name=label,
-        line=dict(color="rgb(52, 152, 219)", width=3),
-        marker=dict(size=10),
+        line=dict(color=CHART["n"], width=3),
+        marker=dict(size=10, color=CHART["n"]),
     ))
 
     fig.update_layout(
-        title=f"Evolution de {label}",
+        title=dict(text=f"Evolution de {label}", font=dict(color=THEME["ink"])),
         xaxis_title="Annee",
         yaxis_title="Euros",
-        height=400,
     )
-    return fig
+    return base_layout(fig, 300)
+
 
 # ============================================================
 # 6. JAUGE CIRCULAIRE DU SCORE GLOBAL
@@ -248,29 +268,27 @@ def jauge_score(score, titre="Score global"):
         return None
 
     color = get_score_color(score)
-    label = get_score_label(score)
+    label = get_score_verdict(score)
 
     fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
+        mode="gauge+number",
         value=score,
         number={"suffix": "/100", "font": {"size": 42, "color": color}},
         title={"text": f"<b>{titre}</b><br><span style='font-size:14px;color:{color}'>{label}</span>",
                "font": {"size": 16}},
         gauge={
-            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": NEUTRAL["secondaire"]},
+            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": THEME["muted"]},
             "bar": {"color": color, "thickness": 0.75},
-            "bgcolor": "white",
+            "bgcolor": THEME["paper"],
             "borderwidth": 2,
-            "bordercolor": NEUTRAL["bordure"],
+            "bordercolor": THEME["line"],
             "steps": [
-                {"range": [0, 30],   "color": "rgba(231, 76, 60, 0.15)"},
-                {"range": [30, 45],  "color": "rgba(230, 126, 34, 0.15)"},
-                {"range": [45, 60],  "color": "rgba(243, 156, 18, 0.15)"},
-                {"range": [60, 75],  "color": "rgba(41, 128, 185, 0.15)"},
-                {"range": [75, 100], "color": "rgba(39, 174, 96, 0.15)"},
+                {"range": [0, 40],  "color": hex_rgba(THEME["bad"], 0.12)},
+                {"range": [40, 70], "color": hex_rgba(THEME["warn"], 0.12)},
+                {"range": [70, 100], "color": hex_rgba(THEME["ok"], 0.12)},
             ],
             "threshold": {
-                "line": {"color": NEUTRAL["primaire"], "width": 3},
+                "line": {"color": THEME["ink"], "width": 3},
                 "thickness": 0.8,
                 "value": score,
             },
@@ -278,11 +296,11 @@ def jauge_score(score, titre="Score global"):
     ))
 
     fig.update_layout(
-        height=320,
         margin=dict(l=20, r=20, t=60, b=20),
-        paper_bgcolor="white",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
     return fig
+
 
 # ============================================================
 # 7. KPI CARD AVEC DELTA
@@ -295,11 +313,12 @@ def kpi_card_delta(valeur, delta_pct=None, label="", unite="EUR", inverse=False)
     """
     return None
 
+
 # ============================================================
 # 8. RADAR AVEC COULEUR SELON MOYENNE
 # ============================================================
 def radar_scores_colore(scores_categories: dict, titre: str = "Scores par categorie"):
-    """Radar avec couleur selon la moyenne."""
+    """Radar avec couleur selon la moyenne des categories."""
     cats = []
     vals = []
     for cat, sc in scores_categories.items():
@@ -313,13 +332,6 @@ def radar_scores_colore(scores_categories: dict, titre: str = "Scores par catego
     moyenne = sum(vals) / len(vals)
     color = get_score_color(moyenne)
 
-    # Couleur de remplissage (avec transparence)
-    fill_color = color.replace("#", "rgba(").replace(")", "") if False else None
-    # Conversion hex -> rgba
-    hex_color = color.lstrip("#")
-    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-    fill_rgba = f"rgba({r}, {g}, {b}, 0.3)"
-
     cats_closed = cats + [cats[0]]
     vals_closed = vals + [vals[0]]
 
@@ -329,21 +341,23 @@ def radar_scores_colore(scores_categories: dict, titre: str = "Scores par catego
         theta=cats_closed,
         fill="toself",
         name="Scores",
-        line_color=color,
-        fillcolor=fill_rgba,
+        line=dict(color=color, width=2),
+        fillcolor=hex_rgba(color, 0.14),
     ))
 
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100], gridcolor=NEUTRAL["bordure"]),
-            bgcolor=NEUTRAL["fond"],
+            radialaxis=dict(visible=True, range=[0, 100], gridcolor=CHART["grid"]),
+            bgcolor="rgba(0,0,0,0)",
         ),
         showlegend=False,
-        title=f"{titre} — Moyenne : {moyenne:.1f}",
-        height=450,
-        margin=dict(l=80, r=80, t=80, b=40),
+        title=dict(
+            text=f"{titre} — Moyenne : {moyenne:.1f}",
+            font=dict(color=THEME["ink"]),
+        ),
     )
-    return fig
+    return base_layout(fig, 420)
+
 
 # ============================================================
 # 9. WATERFALL AVEC LIGNE CIBLE
@@ -383,17 +397,16 @@ def waterfall_contributions_v2(scores_categories: dict, poids: dict, cible=60):
     # Ligne de cible (60 * poids moyen)
     fig.add_vline(
         x=cible * df["Poids"].mean(),
-        line_dash="dash", line_color=NEUTRAL["primaire"],
+        line_dash="dash", line_color=CHART["cible"],
         annotation_text=f"Cible ({cible})",
         annotation_position="top right",
     )
 
     fig.update_layout(
-        title="Contribution des categories au score",
+        title=dict(text="Contribution des categories au score",
+                   font=dict(color=THEME["ink"])),
         xaxis_title="Contribution (score x poids)",
         yaxis_title="",
-        height=450,
-        margin=dict(l=150, r=80, t=60, b=40),
-        plot_bgcolor=NEUTRAL["fond"],
+        plot_bgcolor="rgba(0,0,0,0)",
     )
-    return fig
+    return base_layout(fig, 420)
