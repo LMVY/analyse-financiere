@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent.parent / ".env", override=True)
 
 YAML_PATH = Path(__file__).parent.parent.parent / "config" / "pcg_referentiel.yaml"
 CACHE_DIR = Path(__file__).parent.parent.parent / "data" / "cache_mistral"
