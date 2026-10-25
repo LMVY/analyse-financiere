@@ -39,7 +39,9 @@ PROMPT_ANNOTATION = (
     "au passif TOTAL (I) = total_capitaux_propres, TOTAL (II) = total_dettes, "
     "TOTAL GENERAL = total_passif. "
     "Les lignes de totaux intermediaires (immobilisations, stocks, creances, "
-    "dettes financieres...) remplissent les postes total_* correspondants."
+    "dettes financieres...) remplissent les postes total_* correspondants. "
+    "Remplis la section meta avec la raison sociale, le SIREN et le code "
+    "NAF/APE de l'entreprise s'ils figurent sur le document (null sinon)."
 )
 
 
@@ -83,6 +85,21 @@ def construire_format_annotation(referentiel: dict = None) -> dict:
             "required": list(postes),
             "additionalProperties": False,
         }
+
+    sections["meta"] = {
+        "type": "object",
+        "description": "Identification de l'entreprise figurant sur le document",
+        "properties": {
+            "raison_sociale": {"type": ["string", "null"]},
+            "siren": {"type": ["string", "null"]},
+            "code_naf": {
+                "type": ["string", "null"],
+                "description": "Code NAF ou APE de l'activite principale (ex : 46.75B)",
+            },
+        },
+        "required": ["raison_sociale", "siren", "code_naf"],
+        "additionalProperties": False,
+    }
 
     return {
         "type": "json_schema",
@@ -226,7 +243,20 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ext = DocumentAIExtractor()
-    data = ext.extraire_format_standard(sys.argv[1])
+    annotation = ext.extraire(sys.argv[1])
+    data = ext.vers_format_standard(annotation)
+
+    meta = annotation.get("meta") or {}
+    print("\n=== IDENTIFICATION ===")
+    print(f"  Raison sociale : {meta.get('raison_sociale')}")
+    print(f"  SIREN          : {meta.get('siren')}")
+    print(f"  Code NAF/APE   : {meta.get('code_naf')}")
+    if meta.get("code_naf"):
+        from src.scoring.sector_scorer import detect_secteur, load_secteurs
+        secteur = detect_secteur(meta["code_naf"])
+        if secteur:
+            print(f"  Secteur        : {secteur} "
+                  f"({load_secteurs()[secteur]['label']})")
 
     print("\n=== RESULTAT FORMAT STANDARD ===")
     for sec in SECTIONS:

@@ -3,11 +3,59 @@
 Compare chaque ratio a la distribution du secteur (Q1, mediane, Q3)
 au lieu d'utiliser des seuils fixes.
 """
+import re
 import yaml
 from pathlib import Path
 from typing import Optional
 
 SECTOR_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "secteurs_config.yaml"
+
+# NAF rev. 2 : division (2 premiers chiffres du code APE) -> section (lettre)
+DIVISIONS_NAF = {
+    "01": "A", "02": "A", "03": "A",
+    "05": "B", "06": "B", "07": "B", "08": "B", "09": "B",
+    "10": "C", "11": "C", "12": "C", "13": "C", "14": "C", "15": "C",
+    "16": "C", "17": "C", "18": "C", "19": "C", "20": "C", "21": "C",
+    "22": "C", "23": "C", "24": "C", "25": "C", "26": "C", "27": "C",
+    "28": "C", "29": "C", "30": "C", "31": "C", "32": "C", "33": "C",
+    "35": "D",
+    "36": "E", "37": "E", "38": "E", "39": "E",
+    "41": "F", "42": "F", "43": "F",
+    "45": "G", "46": "G", "47": "G",
+    "49": "H", "50": "H", "51": "H", "52": "H", "53": "H",
+    "55": "I", "56": "I",
+    "58": "J", "59": "J", "60": "J", "61": "J", "62": "J", "63": "J",
+    "64": "K", "65": "K", "66": "K",
+    "68": "L",
+    "69": "M", "70": "M", "71": "M", "72": "M", "73": "M", "74": "M", "75": "M",
+    "77": "N", "78": "N", "79": "N", "80": "N", "81": "N", "82": "N",
+    "84": "O",
+    "85": "P",
+    "86": "Q", "87": "Q", "88": "Q",
+    "90": "R", "91": "R", "92": "R", "93": "R",
+    "94": "S", "95": "S", "96": "S",
+    "97": "T",
+    "98": "U",
+}
+
+
+def section_naf(code_naf: str) -> Optional[str]:
+    """Retourne la lettre de section NAF (A-U) depuis un code NAF/APE.
+
+    Accepte les deux formats :
+    - avec section : "F41.20A", "C25.99Z"
+    - APE seul     : "41.20A", "25.99Z", "6201Z"
+    """
+    if not code_naf:
+        return None
+    code = code_naf.strip().upper()
+    if not code:
+        return None
+    if code[0].isalpha():
+        return code[0]
+    m = re.match(r"(\d{2})", code)
+    return DIVISIONS_NAF.get(m.group(1)) if m else None
+
 
 def load_secteurs(path=None):
     p = Path(path) if path else SECTOR_CONFIG_PATH
@@ -18,7 +66,7 @@ def detect_secteur(code_naf: str, secteurs: dict = None) -> Optional[str]:
     """Detecte le secteur a partir du code NAF/APE.
 
     Args:
-        code_naf: code NAF (ex: "C25.99Z", "6201Z", "F41.20A")
+        code_naf: code NAF (ex: "C25.99Z", "41.20A", "6201Z")
         secteurs: dict des secteurs (charge si None)
 
     Returns:
@@ -29,17 +77,14 @@ def detect_secteur(code_naf: str, secteurs: dict = None) -> Optional[str]:
     if secteurs is None:
         secteurs = load_secteurs()
 
-    # Normaliser : enlever les points et chiffres, garder la lettre
-    code = code_naf.strip().upper()
-    if not code:
+    # Section NAF (lettre) depuis le code, quel que soit le format
+    section = section_naf(code_naf)
+    if section is None:
         return None
 
-    # La 1re lettre est la section NAF
-    first_letter = code[0]
-
     for cat, info in secteurs.items():
-        prefixes = info.get("code_naf_prefix", [])
-        if first_letter in prefixes:
+        prefixes = info.get("code_naf_prefix", []) or []
+        if section in prefixes:
             return cat
 
     return None
@@ -203,7 +248,7 @@ if __name__ == "__main__":
 
     # Test : detecter le secteur depuis le code NAF
     print("=== DETECTION SECTEUR ===")
-    for naf in ["C25.99Z", "F41.20A", "6201Z", "I55.10Z", "M70.22Z"]:
+    for naf in ["C25.99Z", "41.20A", "6201Z", "46.75B", "55.10Z", "68.20A", "M70.22Z"]:
         secteur = detect_secteur(naf)
         label = load_secteurs().get(secteur, {}).get("label", "?") if secteur else "INCONNU"
         print(f"  {naf:12s} -> {secteur} ({label})")

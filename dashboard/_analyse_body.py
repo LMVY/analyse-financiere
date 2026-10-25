@@ -346,10 +346,13 @@ with h_left:
     st.markdown("<h1>Analyse financiere</h1>", unsafe_allow_html=True)
     if st.session_state.analyse_faite:
         nom = st.session_state.get("nom_entreprise", "")
-        secteur_auto = st.session_state.get("secteur_auto_code")
+        naf_auto = st.session_state.get("naf_auto")
+        secteur_label = st.session_state.get("secteur_auto_label")
         meta = nom
-        if secteur_auto:
-            meta += f" &middot; <b>Secteur auto-detecte</b> : {secteur_auto}"
+        if naf_auto:
+            meta += f" &middot; Code NAF : <b>{naf_auto}</b>"
+        if secteur_label:
+            meta += f" &middot; <b>Secteur auto-detecte</b> : {secteur_label}"
         st.markdown(f"<div class='sub'>{meta}</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='sub'>Deposez une liasse fiscale ou un bilan pour obtenir un score detaille.</div>",
@@ -364,6 +367,10 @@ with h_opts:
             opts = ["Detection automatique"]
         st.selectbox("Secteur", opts, key="secteur_sel")
         st.text_input("Code NAF / APE", placeholder="Ex : 41.20A", key="naf_input")
+        if st.session_state.get("naf_auto"):
+            st.caption(f"Détecté dans le document : {st.session_state.naf_auto}"
+                       + (f" ({st.session_state.secteur_auto_label})"
+                          if st.session_state.get("secteur_auto_label") else ""))
         if st.session_state.analyse_faite:
             try:
                 keys = list(PROFILS_EFFECTIFS.keys())
@@ -431,7 +438,7 @@ if fichiers:
                                   key=lambda x: _annee_fichier(x[0].name) or 0,
                                   reverse=True)
 
-            extraits = []      # (nom, data_n, data_n1, annee)
+            extraits = []      # (nom, data_n, data_n1, annee, meta)
             controles = []
             erreurs = []
 
@@ -442,19 +449,21 @@ if fichiers:
 
                 st.write(f"Extraction Document AI : {f.name}")
                 try:
-                    data_f = extractor.extraire_format_standard(p)
+                    annotation = extractor.extraire(p)
+                    data_f = extractor.vers_format_standard(annotation)
                 except Exception as e:
                     erreurs.append(f"{f.name} : {e}")
                     continue
 
                 data_n, data_n1 = scinder_exercices(data_f)
                 controles.append((f.name, scorer_extraction(data_n, "mistral_docai")))
-                extraits.append((f.name, data_n, data_n1, _annee_fichier(f.name)))
+                extraits.append((f.name, data_n, data_n1, _annee_fichier(f.name),
+                                 annotation.get("meta") or {}))
 
             # Fusion par exercice : les donnees N (directes) priment sur les N-1
             par_annee = {}
             for direct in (True, False):
-                for nom, data_n, data_n1, annee in extraits:
+                for nom, data_n, data_n1, annee, meta in extraits:
                     if direct:
                         cle = annee if annee else "N"
                         data = data_n
@@ -484,7 +493,7 @@ if fichiers:
                     for e in erreurs:
                         st.error(e)
 
-            if extraits and any(a is None for _, _, _, a in extraits):
+            if extraits and any(a is None for _, _, _, a, _ in extraits):
                 st.info("Annee non detectee dans le nom d'un fichier : "
                         "ajoutez l'annee au nom pour un historique fiable.")
 
@@ -527,7 +536,19 @@ if fichiers:
                 st.session_state.ratios_par_annee = ratios_par_annee
                 st.session_state.historique = historique
 
-                st.session_state.nom_entreprise = Path(fichiers_tri[0][0].name).stem
+                # Identification de l'entreprise : meta du document le plus recent
+                meta_recent = extraits[0][4] if extraits else {}
+                st.session_state.nom_entreprise = (
+                    meta_recent.get("raison_sociale")
+                    or Path(fichiers_tri[0][0].name).stem
+                )
+                naf = meta_recent.get("code_naf")
+                st.session_state.naf_auto = naf
+                st.session_state.secteur_auto_code = detect_secteur(naf) if naf else None
+                st.session_state.secteur_auto_label = (
+                    load_secteurs()[st.session_state.secteur_auto_code]["label"]
+                    if st.session_state.secteur_auto_code else None
+                )
 
                 st.session_state.pdf_bytes = None
                 st.session_state.analyse_faite = True
