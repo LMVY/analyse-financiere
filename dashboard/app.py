@@ -18,6 +18,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Cle Mistral : sur Streamlit Cloud, elle vit dans Settings > Secrets ;
+# on la reprend dans l'environnement si le .env local ne l'a pas fournie.
+import os
+try:
+    if not os.environ.get("MISTRAL_API_KEY"):
+        os.environ["MISTRAL_API_KEY"] = st.secrets["MISTRAL_API_KEY"]
+except Exception:
+    pass
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
