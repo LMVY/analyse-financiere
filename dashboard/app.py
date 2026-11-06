@@ -18,14 +18,46 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Configuration locale (.env) : chargee avant la lecture des cles.
+import os
+from dotenv import load_dotenv
+load_dotenv(ROOT / ".env", override=True)
+
 # Cle Mistral : sur Streamlit Cloud, elle vit dans Settings > Secrets ;
 # on la reprend dans l'environnement si le .env local ne l'a pas fournie.
-import os
 try:
     if not os.environ.get("MISTRAL_API_KEY"):
         os.environ["MISTRAL_API_KEY"] = st.secrets["MISTRAL_API_KEY"]
 except Exception:
     pass
+
+
+def _secret(nom):
+    """Valeur depuis l'environnement ou les secrets Streamlit."""
+    try:
+        return os.environ.get(nom) or st.secrets.get(nom)
+    except Exception:
+        return os.environ.get(nom)
+
+
+# Acces protege : si APP_PASSWORD est definie (env ou secrets),
+# l'app exige le mot de passe ; sinon elle reste ouverte.
+# Indispensable des que le port est expose (0.0.0.0 ou tunnel).
+_mdp = _secret("APP_PASSWORD")
+if _mdp and not st.session_state.get("acces_ok"):
+    st.markdown("<h1 style='margin-bottom:.2rem'>FinView</h1>"
+                "<p style='color:#64748b'>Acces protege par mot de passe</p>",
+                unsafe_allow_html=True)
+    with st.form("acces"):
+        saisie = st.text_input("Mot de passe", type="password")
+        ouvrir = st.form_submit_button("Ouvrir FinView")
+    if ouvrir:
+        if saisie == _mdp:
+            st.session_state.acces_ok = True
+            st.rerun()
+        else:
+            st.error("Mot de passe incorrect.")
+    st.stop()
 
 st.markdown("""
 <style>
