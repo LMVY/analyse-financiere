@@ -1,29 +1,27 @@
 """Filtre les ratios selon les categories ACTIVES du YAML + le nombre d'exercices.
 
-Source de verite : config/ratios_config.yaml -> categories.ratios_actifs
+Source de verite : la configuration EFFECTIVE (config/ratios_config.yaml,
+surchagee par data/config_user.yaml s'il existe) -> categories.ratios_actifs.
 """
-import yaml
 from pathlib import Path
 
 
 CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "ratios_config.yaml"
 
+# Bornes d'exercices pour lancer une analyse (porte du dashboard)
+MIN_EXERCICES_ANALYSE = 3
+MAX_EXERCICES_ANALYSE = 8
 
-# Ratios qui necessitent au moins 2 exercices
-RATIOS_2_EXERCICES = {
-    "croissance_ca", "croissance_resultat_net",
-    "croissance_ebitda", "croissance_capitaux_propres",
-}
-
-# Ratios qui necessitent au moins 4 exercices
-RATIOS_4_EXERCICES = {"tcac_ca_3ans"}
+# Ratios qui necessitent au moins 2 exercices (taux de variation)
+RATIOS_2_EXERCICES = {"croissance_ca", "croissance_va"}
 
 
 def load_categories():
-    """Charge la liste des ratios actifs par categorie depuis le YAML."""
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
-    cats = cfg.get("categories", {})
+    """Charge les ratios actifs par categorie depuis la config effective
+    (config utilisateur prioritaire sur les defauts)."""
+    from src.scoring.config_loader import load_effective_config
+    _, ratios = load_effective_config()
+    cats = ratios.get("categories", {})
     return {cat: info.get("ratios_actifs", []) for cat, info in cats.items()}
 
 
@@ -36,27 +34,9 @@ def get_ratios_actifs(nb_exercices: int) -> dict:
         for r in ratios:
             if r in RATIOS_2_EXERCICES and nb_exercices < 2:
                 continue
-            if r in RATIOS_4_EXERCICES and nb_exercices < 4:
-                continue
             actifs.append(r)
         result[cat] = actifs
     return result
-
-
-def get_ratios_desactives(nb_exercices: int) -> dict:
-    """Retourne les ratios desactives et la raison."""
-    desactives = {}
-    if nb_exercices < 2:
-        desactives["croissance"] = {
-            "ratios": list(RATIOS_2_EXERCICES),
-            "raison": "Necessite 2 exercices (N et N-1)",
-        }
-    if nb_exercices < 4:
-        if "croissance" not in desactives:
-            desactives["croissance"] = {"ratios": [], "raison": ""}
-        desactives["croissance"]["ratios"].append("tcac_ca_3ans")
-        desactives["croissance"]["raison"] = "tcac_ca_3ans necessite 4 exercices"
-    return desactives
 
 
 def filter_ratios(ratios: dict, nb_exercices: int) -> dict:

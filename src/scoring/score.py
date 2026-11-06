@@ -19,28 +19,76 @@ def load_profils():
     profils, _ = load_effective_config()
     return profils
 
+# Repli uniquement si profils.yaml est illisible. Les poids copient
+# config/profils.yaml (source de verite) : meme chose pour la concordance.
 PROFILS = {
     "tres_court_terme": {
-        "label": "Tres court terme (< 1 an)",
-        "poids": {"liquidite": 0.40, "endettement": 0.20, "rentabilite": 0.10, "croissance": 0.05,
-                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
+        "label": "Tres court terme",
+        "poids": {
+            "gestion_activite": 0.45,
+            "endettement": 0.25,
+            "rentabilite": 0.15,
+            "partage_valeur": 0.15,
+            "croissance": 0.0,
+        },
     },
     "court_terme": {
-        "label": "Court terme (1-3 ans)",
-        "poids": {"liquidite": 0.30, "endettement": 0.25, "rentabilite": 0.15, "croissance": 0.05,
-                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
+        "label": "Court terme",
+        "poids": {
+            "endettement": 0.35,
+            "gestion_activite": 0.25,
+            "rentabilite": 0.2,
+            "partage_valeur": 0.1,
+            "croissance": 0.1,
+        },
     },
     "moyen_terme": {
-        "label": "Moyen terme (3-7 ans)",
-        "poids": {"liquidite": 0.15, "endettement": 0.25, "rentabilite": 0.20, "croissance": 0.10,
-                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
+        "label": "Moyen terme",
+        "poids": {
+            "rentabilite": 0.3,
+            "endettement": 0.3,
+            "partage_valeur": 0.15,
+            "croissance": 0.15,
+            "gestion_activite": 0.1,
+        },
     },
     "long_terme": {
-        "label": "Long terme (> 7 ans)",
-        "poids": {"liquidite": 0.05, "endettement": 0.20, "rentabilite": 0.25, "croissance": 0.15,
-                  "gestion_activite": 0.05, "risque_solvabilite": 0.05},
+        "label": "Long terme",
+        "poids": {
+            "rentabilite": 0.35,
+            "croissance": 0.25,
+            "endettement": 0.2,
+            "partage_valeur": 0.1,
+            "gestion_activite": 0.1,
+        },
     },
 }
+
+def score_grille(valeur, seuils, sens="hausse_bien"):
+    """Note une valeur (0-100) sur la grille standard de la config YAML.
+
+    Partagee par le Scorer standard et, en REPLI, par le SectorScorer
+    quand le secteur n'a pas de reference pour un ratio : une valeur
+    disponible ne doit jamais rester sans score.
+    """
+    if valeur is None or not seuils:
+        return None
+    if sens == "hausse_bien":
+        if valeur <= seuils[0]:
+            return 0.0
+        for i in range(len(seuils) - 1):
+            if seuils[i] <= valeur <= seuils[i + 1]:
+                pct = (valeur - seuils[i]) / (seuils[i + 1] - seuils[i])
+                return (i + pct) * 20
+        return 100.0
+    if valeur <= seuils[0]:
+        return 100.0
+    for i in range(len(seuils) - 1):
+        if seuils[i] <= valeur <= seuils[i + 1]:
+            pct = (valeur - seuils[i]) / (seuils[i + 1] - seuils[i])
+            return 100 - (i + pct) * 20
+    return 0.0
+
 
 class Scorer:
     """Moteur de scoring parametrable (lit le YAML)."""
@@ -70,43 +118,33 @@ class Scorer:
         # Chercher la config du ratio dans toutes les categories
         grille = None
         for cat, ratios in self.config.items():
-            if cat in ("agregats",):
-                continue
+            if cat in ("categories", "agregats"):
+                continue          # cles de structure
             if nom in ratios:
                 grille = ratios[nom]
                 break
 
         if not grille:
             return None
+        return score_grille(valeur, grille["seuils"], grille["sens"])
 
-        seuils = grille["seuils"]
-        sens = grille["sens"]
-
-        if sens == "hausse_bien":
-            if valeur <= seuils[0]:
-                return 0.0
-            for i in range(len(seuils) - 1):
-                if seuils[i] <= valeur <= seuils[i + 1]:
-                    pct = (valeur - seuils[i]) / (seuils[i + 1] - seuils[i])
-                    return (i + pct) * 20
-            return 100.0
-        else:
-            if valeur <= seuils[0]:
-                return 100.0
-            for i in range(len(seuils) - 1):
-                if seuils[i] <= valeur <= seuils[i + 1]:
-                    pct = (valeur - seuils[i]) / (seuils[i + 1] - seuils[i])
-                    return 100 - (i + pct) * 20
-            return 0.0
+    def _actifs(self, cat: str):
+        """Ratios actifs de la categorie (config effective), None si absent."""
+        cats = self.config.get("categories") or {}
+        actifs = (cats.get(cat) or {}).get("ratios_actifs")
+        return set(actifs) if isinstance(actifs, list) else None
 
     def compute_all(self):
-        # 1. Score de chaque ratio (avec poids)
+        # 1. Score de chaque ratio ACTIF (config effective) avec son poids
         for cat, ratios in self.ratios.items():
             if cat not in self.config:
                 continue
+            actifs = self._actifs(cat)
             for nom, valeur in ratios.items():
                 if nom not in self.config[cat]:
                     continue
+                if actifs is not None and nom not in actifs:
+                    continue      # ratio desactive dans la configuration
                 score = self._score_ratio(nom, valeur)
                 if score is not None:
                     poids_ratio = self.config[cat][nom].get("poids", 0)
@@ -120,10 +158,10 @@ class Scorer:
                         "categorie": cat,
                     }
 
-        # 2. Score par categorie (moyenne ponderee par les poids des ratios)
+        # 2. Score par categorie (moyenne ponderee par les poids configures)
         for cat, ratios in self.config.items():
-            if cat == "agregats":
-                continue
+            if cat in ("categories", "agregats"):
+                continue          # cles de structure, pas des categories
             total_score = 0.0
             total_poids = 0.0
             for nom in ratios.keys():
@@ -153,15 +191,3 @@ class Scorer:
             "scores_ratios": {n: round(s, 2) for n, s in self.scores_ratios.items()},
             "details": self.details,
         }
-
-    def get_recommandation(self, score):
-        if score >= 75:
-            return "Risque faible - Acceptation recommandee"
-        elif score >= 60:
-            return "Risque modere - Acceptation avec garanties"
-        elif score >= 45:
-            return "Risque eleve - Analyse approfondie requise"
-        elif score >= 30:
-            return "Risque tres eleve - Acceptation deconseillee"
-        else:
-            return "Risque critique - Refus"

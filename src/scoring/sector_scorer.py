@@ -8,7 +8,10 @@ import yaml
 from pathlib import Path
 from typing import Optional
 
+from src.scoring.score import score_grille
+
 SECTOR_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "secteurs_config.yaml"
+USER_CONFIG_PATH = Path(__file__).parent.parent.parent / "data" / "config_user.yaml"
 
 # NAF rev. 2 : division (2 premiers chiffres du code APE) -> section (lettre)
 DIVISIONS_NAF = {
@@ -58,8 +61,16 @@ def section_naf(code_naf: str) -> Optional[str]:
 
 
 def load_secteurs(path=None):
-    p = Path(path) if path else SECTOR_CONFIG_PATH
-    with open(p, "r", encoding="utf-8") as f:
+    """Charge les referentiels sectoriels (user > defaut)."""
+    if path is not None:
+        with open(Path(path), "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    if USER_CONFIG_PATH.exists():
+        with open(USER_CONFIG_PATH, "r", encoding="utf-8") as f:
+            user = yaml.safe_load(f) or {}
+        if user.get("secteurs"):
+            return user["secteurs"]
+    with open(SECTOR_CONFIG_PATH, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 def detect_secteur(code_naf: str, secteurs: dict = None) -> Optional[str]:
@@ -177,8 +188,15 @@ class SectorScorer:
         for cat, ratio_dict in self.ratios.items():
             if cat not in ratios_config:
                 continue
+            # Ratios actifs de la configuration effective (concordance
+            # avec la page Parametrage : un ratio desactive n'est pas score)
+            actifs_cfg = (ratios_config.get("categories") or {}).get(cat) or {}
+            actifs = actifs_cfg.get("ratios_actifs")
+            actifs = set(actifs) if isinstance(actifs, list) else None
             for nom, valeur in ratio_dict.items():
                 if valeur is None:
+                    continue
+                if actifs is not None and nom not in actifs:
                     continue
                 if self._est_desactive(nom):
                     continue
@@ -187,7 +205,15 @@ class SectorScorer:
                     continue
 
                 sens = cfg.get("sens", "hausse_bien")
+                ref = self._get_ratio_ref(nom)
                 score = self._score_vs_sector(nom, valeur, sens)
+                methode_ratio = "sectorielle"
+                if score is None and not ref:
+                    # pas de reference sectorielle pour ce ratio : repli
+                    # sur la grille standard (seuils YAML) pour que toute
+                    # valeur disponible soit scoree
+                    score = score_grille(valeur, cfg.get("seuils"), sens)
+                    methode_ratio = "standard"
 
                 if score is not None:
                     resultats[nom] = {
@@ -200,13 +226,21 @@ class SectorScorer:
                         "categorie": cat,
                         "ref_secteur": self._get_ratio_ref(nom),
                         "methode": "sectorielle",
+                        "methode_ratio": methode_ratio,
                     }
 
         self.details = resultats
         return resultats
 
-    def compute_scores_by_category(self, ratios_config: dict) -> dict:
-        """Retourne les scores par categorie (comme Scorer.compute_all)."""
+    def compute_scores_by_category(self, ratios_config: dict,
+                                   poids_categories: dict = None) -> dict:
+        """Retourne les scores par categorie (comme Scorer.compute_all).
+
+        poids_categories : poids des categories du profil d'analyse
+        (config/ratios_config.yaml -> profils). S'ils sont fournis, le
+        score global les utilise comme le Scorer standard ; sinon la
+        somme des poids des ratios de chaque categorie sert de poids.
+        """
         sector_scores = self.compute_sector_scores(ratios_config)
 
         # Agreger par categorie (moyenne ponderee)
@@ -224,13 +258,24 @@ class SectorScorer:
         # Score global (moyenne ponderee des categories)
         total_score = 0.0
         total_poids = 0.0
-        for cat, sc in scores_categories.items():
-            if sc is None:
-                continue
-            # Poids de la categorie = somme des poids de ses ratios
-            poids_cat = par_cat[cat]["poids"]
-            total_score += sc * poids_cat
-            total_poids += poids_cat
+        if poids_categories:
+            # Concordance avec le Scorer standard : poids du profil
+            for cat, sc in scores_categories.items():
+                if sc is None:
+                    continue
+                poids = poids_categories.get(cat)
+                if not poids:
+                    continue
+                total_score += sc * poids
+                total_poids += poids
+        else:
+            for cat, sc in scores_categories.items():
+                if sc is None:
+                    continue
+                # Poids de la categorie = somme des poids de ses ratios
+                poids_cat = par_cat[cat]["poids"]
+                total_score += sc * poids_cat
+                total_poids += poids_cat
 
         score_global = total_score / total_poids if total_poids > 0 else 0.0
 
@@ -245,6 +290,9 @@ class SectorScorer:
                 "cible": info["cible"],
                 "categorie": info["categorie"],
                 "methode": "sectorielle",
+                # "sectorielle" (reference Q1/mediane/Q3) ou "standard"
+                # (repli sur les seuils YAML, sans reference sectorielle)
+                "methode_ratio": info.get("methode_ratio", "sectorielle"),
             }
 
         return {

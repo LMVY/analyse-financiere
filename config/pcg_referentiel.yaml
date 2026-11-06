@@ -252,6 +252,10 @@ passif:
   - emprunts obligataires convertibles
   - emprunts obligataires
   - autres emprunts obligataires
+  emprunts_dettes_financieres_divers:
+  - emprunts et dettes financieres divers
+  - emprunts et dettes financieres diverses
+  - dettes financieres diverses
   dettes_financieres:
   - emprunts et dettes aupres des etablissements de credit
   - emprunts dettes etablissements de credit

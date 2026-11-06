@@ -1,15 +1,26 @@
-"""Calcul des ratios financiers - 6 categories, 35 ratios.
+"""Calcul des ratios financiers - formules de la Banque de France.
 
-Chaque ratio est calcule a partir des agregats intermediaires.
-Retourne une valeur numerique (float) ou None si non calculable.
+18 ratios, 5 categories. Chaque formule reprend la definition
+publiee par la Banque de France dans ses "Fascicules de resultats
+sectoriels" (base FIBEN) - c'est ce qui permet de comparer chaque
+ratio aux quartiles sectoriels reels publies chaque annee.
 
 Categories :
-    - liquidite (6)
-    - endettement (7)
-    - rentabilite (7)
-    - croissance (5)
-    - gestion_activite (6)
-    - risque_solvabilite (4)
+    - croissance (2)
+    - rentabilite (6)
+    - gestion_activite (3)
+    - endettement (4)
+    - partage_valeur (3)
+
+Approximations documentees (donnees disponibles = liasse fiscale,
+sans effectif ni dividendes ni montants TTC) :
+    - EBG = EBE (produits financiers d'exploitation non isoles) ;
+    - CAF = resultat net + dotations ;
+    - capital d'exploitation = actif immobilise + BFR (creances
+      d'exploitation approximees par le total des creances) ;
+    - revenus repartis = VA + subventions d'exploitation ;
+    - delais calcules sur des flux HT (references BdF en TTC) ;
+    - jours = 360 (convention BdF).
 """
 
 
@@ -24,162 +35,140 @@ class Ratios:
     def _get(self, key: str, default: float = 0.0) -> float:
         return self.a.get(key, default)
 
-    def _safe_div(self, num: float, denom: float, default=None):
-        """Division securisee : retourne None si denom <= 0."""
-        if denom is None or abs(denom) < 1e-9:
+    def _div_pos(self, num: float, denom: float, default=None):
+        """Division BdF : None si denominateur <= 0 ou non calculable.
+
+        "Les ratios ne sont pas calcules pour les denominateurs
+        inferieurs ou egaux a zero ou indisponibles" (fascicule).
+        """
+        if denom is None or denom <= 1e-9:
             return default
         return num / denom
 
-    def _safe_pct(self, num: float, denom: float, default=None):
-        """Ratio en pourcentage."""
-        r = self._safe_div(num, denom)
+    def _pct_pos(self, num: float, denom: float, default=None):
+        """Ratio en pourcentage (denominateur strictement positif)."""
+        r = self._div_pos(num, denom)
         return r * 100 if r is not None else default
 
     def compute_all(self) -> dict:
         """Calcule tous les ratios et les organise par categorie."""
         self.resultats = {
-            "liquidite": self._liquidite(),
-            "endettement": self._endettement(),
-            "rentabilite": self._rentabilite(),
             "croissance": self._croissance(),
+            "rentabilite": self._rentabilite(),
             "gestion_activite": self._gestion_activite(),
-            "risque_solvabilite": self._risque_solvabilite(),
+            "endettement": self._endettement(),
+            "partage_valeur": self._partage_valeur(),
         }
         return self.resultats
 
     # ============================================================
-    # 1. LIQUIDITE (6 ratios)
-    # ============================================================
-    def _liquidite(self) -> dict:
-        ca = self._get("chiffre_affaires")
-        stocks = self._get("total_stocks")
-        creances = self._get("total_creances")
-        tresorerie = self._get("tresorerie")
-        dettes_ct = self._get("dettes_fournisseurs") + self._get("dettes_fiscales_sociales")
-        dettes_fin_ct = self._get("dettes_financieres")
-        caf = self._get("caf")
-
-        actif_circulant = stocks + creances + tresorerie
-
-        return {
-            "current_ratio": self._safe_div(actif_circulant, dettes_ct),
-            "quick_ratio": self._safe_div(creances + tresorerie, dettes_ct),
-            "cash_ratio": self._safe_div(tresorerie, dettes_ct),
-            "liquidite_immediate": self._safe_div(tresorerie, dettes_fin_ct),
-            "tresorerie_ca": self._safe_pct(tresorerie, ca),
-            "couverture_caf_dette": self._safe_pct(caf, dettes_fin_ct),
-        }
-
-    # ============================================================
-    # 2. ENDETTEMENT (7 ratios)
-    # ============================================================
-    def _endettement(self) -> dict:
-        cp = self._get("capitaux_propres")
-        df = self._get("dettes_financieres")
-        td = self._get("total_dettes")
-        ebitda = self._get("ebitda")
-        tresorerie = self._get("tresorerie")
-        caf = self._get("caf")
-        total_passif = self._get("total_passif")
-        rs = self._get("ressources_stables")
-        ai = self._get("actif_immobilise")
-
-        return {
-            "gearing": self._safe_pct(df, cp),
-            "levier_financier": self._safe_pct(td, cp),
-            "dette_nette_ebitda": self._safe_div(df - tresorerie, ebitda),
-            "dette_nette_fonds_propres": self._safe_pct(df - tresorerie, cp),
-            "capacite_desendettement": self._safe_div(df, caf),
-            "autonomie_financiere": self._safe_pct(cp, total_passif),
-            "equilibre_financier": self._safe_div(rs, ai),
-        }
-
-    # ============================================================
-    # 3. RENTABILITE (7 ratios)
-    # ============================================================
-    def _rentabilite(self) -> dict:
-        ca = self._get("chiffre_affaires")
-        rn = self._get("resultat_net")
-        ebit = self._get("ebit")
-        ebitda = self._get("ebitda")
-        cp = self._get("capitaux_propres")
-        total_actif = self._get("total_actif")
-        cap_employes = self._get("capitaux_employes")
-        achats = self._get("achats")  # agrege par Agregats
-
-        return {
-            "marge_brute": self._safe_pct(ca - achats, ca),
-            "marge_ebitda": self._safe_pct(ebitda, ca),
-            "marge_operationnelle": self._safe_pct(ebit, ca),
-            "marge_nette": self._safe_pct(rn, ca),
-            "roe": self._safe_pct(rn, cp),
-            "roa": self._safe_pct(rn, total_actif),
-            "roce": self._safe_pct(ebit, cap_employes),
-        }
-
-    # ============================================================
-    # 4. CROISSANCE (5 ratios - remplis plus tard)
+    # 1. CROISSANCE (2 ratios - remplis par le dashboard N vs N-1)
     # ============================================================
     def _croissance(self) -> dict:
+        """Taux de variation : (N - N-1) / N-1, en %."""
         return {
-            "croissance_ca": None,
-            "croissance_ebitda": None,
-            "croissance_resultat_net": None,
-            "croissance_capitaux_propres": None,
-            "tcac_ca_3ans": None,
+            "croissance_ca": None,    # taux de variation du CAHT
+            "croissance_va": None,    # taux de variation de la VA
         }
 
     # ============================================================
-    # 5. GESTION / ACTIVITE (6 ratios)
+    # 2. RENTABILITE (9 ratios)
+    # ============================================================
+    def _rentabilite(self) -> dict:
+        va = self._get("valeur_ajoutee")
+        ca = self._get("chiffre_affaires")
+        production = self._get("production_exercice")
+        ventes_march = self._get("ventes_marchandises")
+        ebe = self._get("ebe")
+        caf = self._get("caf")
+        cp = self._get("capitaux_propres")
+        # Capital d'exploitation = immobilisations + BFRE
+        # (approximation : actif immobilise + BFR, cf. docstring module)
+        capital_expl = self._get("actif_immobilise") + self._get("bfr")
+
+        # Denominateur BdF : production + ventes de marchandises. Les
+        # liasses non ventilees (CA global seul) tombent a zero : le
+        # CAHT est le denominateur equivalent tant qu'il n'existe pas
+        # de production stockee ni immobilisee (approximation
+        # documentee).
+        denom_tva = production + ventes_march
+        if denom_tva <= 1e-9:
+            denom_tva = ca
+
+        return {
+            # Taux de valeur ajoutee = VA / (Production + Ventes marchandises)
+            "taux_valeur_ajoutee": self._pct_pos(va, denom_tva),
+            # Taux de marge = EBE / VA (mesure canonique BdF/INSEE ; la
+            # decomposition marge commerciale / marge industrielle
+            # n'est pas retenue : souvent non calculable selon le metier)
+            "taux_marge": self._pct_pos(ebe, va),
+            # Taux d'excedent brut global = EBG / CAHT (EBG = EBE ici)
+            "taux_excedent_brut_global": self._pct_pos(ebe, ca),
+            # Rentabilite financiere des capitaux propres = CAF nette / CP
+            "rentabilite_financiere_capitaux_propres": self._pct_pos(caf, cp),
+            # Rentabilite brute du capital d'exploitation = EBE / capital expl.
+            "rentabilite_brute_capital_exploitation": self._pct_pos(
+                ebe, capital_expl),
+            # Rendement du capital d'exploitation = VA / capital expl.
+            "rendement_capital_exploitation": self._pct_pos(va, capital_expl),
+        }
+
+    # ============================================================
+    # 3. GESTION D'ACTIVITE (3 ratios - delais en jours, /360)
     # ============================================================
     def _gestion_activite(self) -> dict:
         ca = self._get("chiffre_affaires")
-        stocks = self._get("total_stocks")
-        df = self._get("dettes_fournisseurs")
-        achats = self._get("achats")  # agrege par Agregats
-        total_actif = self._get("total_actif")
-        ai = self._get("actif_immobilise")
-
-        dsi = self._safe_div(stocks * 365, achats)
-        dpo = self._safe_div(df * 365, achats)
-
-        ccc = None
-        if dsi is not None and dpo is not None:
-            ccc = dsi - dpo
-
+        bfr = self._get("bfr")
+        # Delai clients : (creances clients - avances recues) / CA
+        num_dso = (self._get("creances_clients")
+                   - self._get("avances_acomptes_recus"))
+        # Delai fournisseurs : (dettes fourn. - avances versees) /
+        # (achats et charges externes)
+        num_dpo = (self._get("dettes_fournisseurs")
+                   - self._get("avances_commandes"))
+        achats_charges = (self._get("achats_matieres")
+                          + self._get("achats_marchandises")
+                          + self._get("autres_achats_charges_externes"))
         return {
-            "dsi": dsi,
-            "dpo": dpo,
-            "rotation_stocks": self._safe_div(ca, stocks),
-            "rotation_actif": self._safe_div(ca, total_actif),
-            "rotation_immobilisations": self._safe_div(ca, ai),
-            "cycle_conversion_tresorerie": ccc,
+            "dso": self._div_pos(num_dso * 360, ca),
+            "dpo": self._div_pos(num_dpo * 360, achats_charges),
+            "poids_bfr_exploitation": self._div_pos(bfr * 360, ca),
         }
 
     # ============================================================
-    # 6. RISQUE / SOLVABILITE (4 ratios)
+    # 4. ENDETTEMENT (4 ratios)
     # ============================================================
-    def _risque_solvabilite(self) -> dict:
+    def _endettement(self) -> dict:
         cp = self._get("capitaux_propres")
-        td = self._get("total_dettes")
-        total_actif = self._get("total_actif")
-        stocks = self._get("total_stocks")
-        creances = self._get("total_creances")
+        dettes_fin = self._get("dettes_financieres")
         tresorerie = self._get("tresorerie")
-        dettes_fourn = self._get("dettes_fournisseurs")
+        interets = self._get("interets_charges_assimilees")
         ebe = self._get("ebe")
-
-        charges_fin = self._get("interets_charges_assimilees") + self._get("charges_cessions_vmp")
-
-        couv_frais_fin = None
-        if charges_fin and charges_fin > 0 and ebe is not None:
-            couv_frais_fin = ebe / charges_fin
-
         return {
-            "ratio_solvabilite": self._safe_pct(cp, td),
-            "ratio_couverture_dettes": self._safe_div(total_actif, td),
-            "ratio_liquidite_large": self._safe_div(
-                stocks + creances + tresorerie, dettes_fourn
-            ),
-            "couverture_frais_financiers": couv_frais_fin,
+            # Taux brut d'endettement financier = endettement / CP
+            "gearing": self._pct_pos(dettes_fin, cp),
+            # Taux net d'endettement = (endettement - tresorerie active) / CP
+            "dette_nette_fonds_propres": self._pct_pos(
+                dettes_fin - tresorerie, cp),
+            # Cout apparent de l'endettement = interets / endettement
+            "cout_apparent_endettement": self._pct_pos(
+                interets, dettes_fin),
+            # Poids des interets sur l'EBG = interets / EBG
+            "poids_interets_ebg": self._pct_pos(interets, ebe),
+        }
+
+    # ============================================================
+    # 5. PARTAGE DE LA VALEUR (3 ratios)
+    # ============================================================
+    def _partage_valeur(self) -> dict:
+        # Revenus repartis ~ VA + subventions d'exploitation
+        revenus = (self._get("valeur_ajoutee")
+                   + self._get("subventions_exploitation"))
+        return {
+            "repartition_personnel": self._pct_pos(
+                self._get("charges_personnel"), revenus),
+            "repartition_etat": self._pct_pos(
+                self._get("impots_taxes"), revenus),
+            "repartition_preteurs": self._pct_pos(
+                self._get("interets_charges_assimilees"), revenus),
         }

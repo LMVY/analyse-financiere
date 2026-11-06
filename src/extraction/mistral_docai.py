@@ -17,12 +17,12 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
+from src.extraction.controle_extraction import SECTIONS
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env", override=True)
 
 YAML_PATH = Path(__file__).parent.parent.parent / "config" / "pcg_referentiel.yaml"
 CACHE_DIR = Path(__file__).parent.parent.parent / "data" / "cache_mistral"
-
-SECTIONS = ("actif", "passif", "compte_resultat")
 
 PROMPT_ANNOTATION = (
     "Tu es expert-comptable francais, specialiste du Plan Comptable General. "
@@ -33,11 +33,17 @@ PROMPT_ANNOTATION = (
     "Pour l'actif, utilise la colonne NET (apres amortissements et provisions). "
     "Garde les montants tels qu'ils figurent, sans conversion d'unites. "
     "Un montant entre parentheses est negatif. "
-    "Remplis AUSSI les postes de totaux a partir des lignes TOTAL du document. "
-    "Dans un bilan francais standard : a l'actif TOTAL (I) = actif_immobilise, "
-    "TOTAL (II) = total_actif_circulant, TOTAL GENERAL = total_actif ; "
-    "au passif TOTAL (I) = total_capitaux_propres, TOTAL (II) = total_dettes, "
-    "TOTAL GENERAL = total_passif. "
+    "Remplis AUSSI les postes de totaux a partir des lignes TOTAL du "
+    "document, selon la presentation du document. "
+    "Bilan classique : a l'actif TOTAL (I) = actif_immobilise, "
+    "TOTAL (II) = total_actif_circulant ; au passif TOTAL (I) = "
+    "total_capitaux_propres, TOTAL (II) = total_dettes. "
+    "Liasse fiscale 2051 (presentation DGFiP) : a l'actif TOTAL (I) = "
+    "capital_souscrit_non_appele, TOTAL (II) = actif_immobilise, "
+    "TOTAL (III) = total_actif_circulant ; au passif TOTAL (I) = "
+    "total_capitaux_propres, TOTAL (IV) = total_dettes. "
+    "Dans les deux presentations, TOTAL GENERAL = total_actif a l'actif "
+    "et total_passif au passif. "
     "Les lignes de totaux intermediaires (immobilisations, stocks, creances, "
     "dettes financieres...) remplissent les postes total_* correspondants. "
     "Remplis la section meta avec la raison sociale, le SIREN et le code "

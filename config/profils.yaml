@@ -1,50 +1,58 @@
+# ============================================================
+# PROFILS D'ANALYSE - poids des 5 categories (moteur 18 ratios BdF)
+# ============================================================
+# Repartition ancree sur ce que mesurent les ratios et l'horizon :
+#   - tres court terme : le cycle d'exploitation (delais clients/
+#     fournisseurs, poids du BFR) est la premiere source/consommatrice
+#     de tresorerie de l'annee ; charge d'interets de l'exercice.
+#   - court terme : structure et cout de la dette, marge d'excedent
+#     brut de l'exercice, cycle maitrise.
+#   - moyen terme : rentabilite durable + desendettement possible ;
+#     le partage de la VA revele la rigidite des charges.
+#   - long terme : rentabilite (rendement du capital), trajectoire
+#     de croissance ; le cycle, devenu structure, pese peu.
+# ============================================================
+
 tres_court_terme:
   label: Tres court terme
-  description: Risque de liquidite immediate (< 1 an)
+  description: 'Risque de paiement a moins d''un an : le cycle d''exploitation (delais clients/fournisseurs,
+    BFR) est la premiere source ou la premiere consommatrice de tresorerie ; la charge d''interets pesant
+    sur l''exercice en cours complete la lecture. La croissance est neutralisee (0).'
   poids_categories:
-    liquidite: 0.6
-    endettement: 0.23
-    rentabilite: 0.05
+    gestion_activite: 0.45
+    endettement: 0.25
+    rentabilite: 0.15
+    partage_valeur: 0.15
     croissance: 0.0
-    gestion_activite: 0.05
-    risque_solvabilite: 0.07
 court_terme:
   label: Court terme
-  description: Capacite de remboursement CT (1-3 ans)
+  description: 'Capacite de remboursement a 1-3 ans : la structure et le cout de l''endettement priment,
+    soutenus par la marge d''excedent brut de l''exercice et un cycle d''exploitation maitrise.'
   poids_categories:
-    liquidite: 0.35
-    endettement: 0.3
-    rentabilite: 0.1
-    croissance: 0.05
-    gestion_activite: 0.1
-    risque_solvabilite: 0.1
+    endettement: 0.35
+    gestion_activite: 0.25
+    rentabilite: 0.2
+    partage_valeur: 0.1
+    croissance: 0.1
 moyen_terme:
   label: Moyen terme
-  description: Equilibre financier, rentabilite durable (3-7 ans)
+  description: 'Equilibre financier durable a 3-7 ans : la rentabilite (marges, rentabilite du capital
+    d''exploitation) et la capacite de desendettement sont les deux piliers ; le partage de la valeur
+    ajoutee (parts personnel, Etat, preteurs) revele la rigidite de la structure de charges.'
   poids_categories:
-    liquidite: 0.15
-    endettement: 0.35
-    rentabilite: 0.2
+    rentabilite: 0.3
+    endettement: 0.3
+    partage_valeur: 0.15
     croissance: 0.15
-    gestion_activite: 0.05
-    risque_solvabilite: 0.1
+    gestion_activite: 0.1
 long_terme:
   label: Long terme
-  description: Solvabilite et creation de valeur (7-15 ans)
+  description: 'Creation de valeur et solvabilite a 7-15 ans : la rentabilite durable (dont le rendement
+    du capital d''exploitation) et la trajectoire de croissance priment ; la structure du cycle d''exploitation,
+    installee depuis longtemps, pese peu.'
   poids_categories:
-    liquidite: 0.1
-    endettement: 0.27
-    rentabilite: 0.25
-    croissance: 0.2
-    gestion_activite: 0.05
-    risque_solvabilite: 0.13
-tres_long_terme:
-  label: Tres long terme
-  description: Perenite et solidite structurelle (> 15 ans)
-  poids_categories:
-    liquidite: 0.05
-    endettement: 0.25
-    rentabilite: 0.25
+    rentabilite: 0.35
     croissance: 0.25
-    gestion_activite: 0.05
-    risque_solvabilite: 0.15
+    endettement: 0.2
+    partage_valeur: 0.1
+    gestion_activite: 0.1

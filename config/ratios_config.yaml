@@ -1,461 +1,245 @@
-categories:
-  liquidite:
-    ratios_actifs:
-    - current_ratio
-    - quick_ratio
-    - cash_ratio
-    - liquidite_immediate
-    - tresorerie_ca
-    - couverture_caf_dette
-  endettement:
-    ratios_actifs:
-    - dette_nette_ebitda
-    - gearing
-    - capacite_desendettement
-    - levier_financier
-    - dette_nette_fonds_propres
-    - autonomie_financiere
-    - equilibre_financier
-  rentabilite:
-    ratios_actifs:
-    - roe
-    - roce
-    - marge_ebitda
-    - marge_nette
-    - roa
-    - marge_operationnelle
-    - marge_brute
-  croissance:
-    ratios_actifs:
-    - croissance_ca
-    - croissance_resultat_net
-    - croissance_ebitda
-    - croissance_capitaux_propres
-    - tcac_ca_3ans
-  gestion_activite:
-    ratios_actifs:
-    - dpo
-    - dsi
-    - rotation_actif
-    - rotation_stocks
-    - rotation_immobilisations
-    - cycle_conversion_tresorerie
-  risque_solvabilite:
-    ratios_actifs:
-    - ratio_solvabilite
-    - ratio_couverture_dettes
-    - ratio_liquidite_large
-liquidite:
-  current_ratio:
-    poids: 0.28
-    seuils:
-    - 0.5
-    - 1.0
-    - 1.5
-    - 2.0
-    - 3.0
-    sens: hausse_bien
-    source: Bale III (LCR)
-    ref: BIS - Liquidity Coverage Ratio
-    cible: '> 1.5'
-  quick_ratio:
-    poids: 0.24
-    seuils:
-    - 0.3
-    - 0.6
-    - 1.0
-    - 1.5
-    - 2.0
-    sens: hausse_bien
-    source: Bale III (NSFR)
-    ref: BIS - Net Stable Funding Ratio
-    cible: '> 1.0'
-  cash_ratio:
-    poids: 0.16
-    seuils:
-    - 0.05
-    - 0.1
-    - 0.2
-    - 0.5
-    - 1.0
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - Statistiques entreprises
-    cible: '> 0.2'
-  liquidite_immediate:
-    poids: 0.08
-    seuils:
-    - 0.1
-    - 0.3
-    - 0.5
-    - 1.0
-    - 2.0
-    sens: hausse_bien
-    source: Pratique bancaire
-    ref: Comite Bale - LCR
-    cible: '> 0.5'
-  tresorerie_ca:
-    poids: 0.14
-    seuils:
-    - 1
-    - 3
-    - 5
-    - 10
-    - 20
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - Tresorerie / CA
-    cible: '> 5%'
-  couverture_caf_dette:
-    poids: 0.1
-    seuils:
-    - 5
-    - 10
-    - 20
-    - 40
-    - 80
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - CAF / Dettes fin.
-    cible: '> 20%'
-endettement:
-  dette_nette_ebitda:
-    poids: 0.25
-    seuils:
-    - 0
-    - 1
-    - 2
-    - 3.5
-    - 5
-    sens: baisse_bien
-    source: Pratique bancaire
-    ref: Standard LBO/Private Equity
-    cible: < 3.5
-  gearing:
-    poids: 0.2
-    seuils:
-    - 30
-    - 50
-    - 100
-    - 150
-    - 200
-    sens: baisse_bien
-    source: Banque de France
-    ref: BdF - Centrale des risques
-    cible: < 100%
-  capacite_desendettement:
-    poids: 0.13
-    seuils:
-    - 0.5
-    - 1
-    - 2
-    - 3
-    - 5
-    sens: baisse_bien
-    source: Banque de France
-    ref: BdF - Analyse financiere PME
-    cible: < 3 ans
-  levier_financier:
-    poids: 0.07
-    seuils:
-    - 50
-    - 100
-    - 150
-    - 200
-    - 300
-    sens: baisse_bien
-    source: Banque de France
-    ref: BdF - Ratios sectoriels
-    cible: < 150%
-  dette_nette_fonds_propres:
-    poids: 0.05
-    seuils:
-    - 0
-    - 20
-    - 50
-    - 100
-    - 150
-    sens: baisse_bien
-    source: Banque de France
-    ref: BdF - Centrale des risques
-    cible: < 100%
-  autonomie_financiere:
-    poids: 0.2
-    seuils:
-    - 10
-    - 20
-    - 30
-    - 50
-    - 70
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - Base FIBEN, min 30%
-    cible: '> 30%'
-  equilibre_financier:
-    poids: 0.1
-    seuils:
-    - 0.5
-    - 0.8
-    - 1.0
-    - 1.5
-    - 2.0
-    sens: hausse_bien
-    source: PCG (Plan Comptable General)
-    ref: ANC - FDR > 0
-    cible: '> 1.0'
-rentabilite:
-  roe:
-    poids: 0.21
-    seuils:
-    - 0
-    - 3
-    - 8
-    - 15
-    - 25
-    sens: hausse_bien
-    source: Damodaran (NYU)
-    ref: Damodaran - Return on Equity datasets
-    cible: '> 8%'
-  roce:
-    poids: 0.21
-    seuils:
-    - 0
-    - 3
-    - 7
-    - 12
-    - 20
-    sens: hausse_bien
-    source: Damodaran (NYU)
-    ref: Damodaran - ROCE by sector
-    cible: '> 7%'
-  marge_ebitda:
-    poids: 0.16
-    seuils:
-    - 2
-    - 5
-    - 10
-    - 15
-    - 25
-    sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Ratios sectoriels ESANE
-    cible: '> 10%'
-  marge_nette:
-    poids: 0.16
-    seuils:
-    - 0
-    - 1
-    - 3
-    - 5
-    - 10
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - Base FIBEN
-    cible: '> 3%'
-  roa:
-    poids: 0.11
-    seuils:
-    - 0
-    - 1
-    - 3
-    - 5
-    - 10
-    sens: hausse_bien
-    source: Damodaran (NYU)
-    ref: Damodaran - ROA by sector
-    cible: '> 3%'
-  marge_operationnelle:
-    poids: 0.11
-    seuils:
-    - 0
-    - 2
-    - 5
-    - 10
-    - 15
-    sens: hausse_bien
-    source: INSEE
-    ref: INSEE - ESANE (elaboration des statistiques annuelles)
-    cible: '> 5%'
-  marge_brute:
-    poids: 0.04
-    seuils:
-    - 5
-    - 15
-    - 25
-    - 40
-    - 60
-    sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Ratios sectoriels
-    cible: '> 25%'
+# ============================================================
+# GRILLES DE SCORING - 18 ratios, formules Banque de France
+# ============================================================
+# Grilles standard derivees des quartiles REELS du fascicule
+# Banque de France division 28 (machines), donnees 2023 :
+#   hausse_bien : en dessous du Q1 -> 0 ; Q1 -> 20 ; mediane -> 40 ;
+#                 Q3 -> 60 ; au-dela -> jusqu'a 100
+#   baisse_bien : en dessous du Q1 -> 100 ; mediane -> 80 ; Q3 -> 60 ;
+#                 au-dela -> jusqu'a 0
+# Le scoring sectoriel (secteurs_config.yaml) prime sur ces grilles
+# des que le secteur de l'entreprise est connu.
+# ============================================================
+
 croissance:
   croissance_ca:
+    poids: 0.6
+    seuils:
+    - -8.62
+    - -5.5
+    - 4.9
+    - 17.5
+    - 21.28
+    sens: hausse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  croissance_va:
     poids: 0.4
     seuils:
-    - -20
-    - -10
-    - 0
-    - 5
-    - 15
+    - -10.76
+    - -6.8
+    - 6.4
+    - 20.2
+    - 24.34
     sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Croissance CA par secteur
-    cible: '> 0%'
-  croissance_resultat_net:
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+rentabilite:
+  taux_excedent_brut_global:
+    poids: 0.3
+    seuils:
+    - 2.81
+    - 4.1
+    - 8.4
+    - 14.3
+    - 16.07
+    sens: hausse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  taux_marge:
     poids: 0.25
     seuils:
-    - -50
-    - -20
-    - 0
-    - 10
-    - 30
+    - 6.74
+    - 10.1
+    - 21.3
+    - 33.6
+    - 37.29
     sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Resultats entreprises
-    cible: '> 0%'
-  croissance_ebitda:
-    poids: 0.2
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  taux_valeur_ajoutee:
+    poids: 0.15
     seuils:
-    - -30
-    - -15
-    - 0
-    - 10
-    - 25
+    - 26.72
+    - 29.3
+    - 37.9
+    - 45.8
+    - 48.17
     sens: hausse_bien
-    source: INSEE
-    ref: INSEE - EBE/EBITDA sectoriel
-    cible: '> 0%'
-  croissance_capitaux_propres:
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  rentabilite_financiere_capitaux_propres:
+    poids: 0.15
+    seuils:
+    - 2.58
+    - 5.1
+    - 13.5
+    - 24.3
+    - 27.54
+    sens: hausse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  rentabilite_brute_capital_exploitation:
     poids: 0.1
     seuils:
-    - -20
-    - -5
-    - 0
-    - 5
-    - 15
+    - 3.42
+    - 6.0
+    - 14.6
+    - 29.7
+    - 34.23
     sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Fonds propres
-    cible: '> 0%'
-  tcac_ca_3ans:
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  rendement_capital_exploitation:
     poids: 0.05
     seuils:
-    - -10
-    - -5
-    - 0
-    - 5
-    - 10
+    - 37.65
+    - 45.0
+    - 69.5
+    - 116.4
+    - 130.47
     sens: hausse_bien
-    source: INSEE
-    ref: INSEE - TCAC pluriannuel
-    cible: '> 0%'
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
 gestion_activite:
+  dso:
+    poids: 0.3
+    seuils:
+    - 36.5
+    - 56.7
+    - 80.3
+    - 87.38
+    - 94.46
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
   dpo:
     poids: 0.3
     seuils:
-    - 15
-    - 30
-    - 45
-    - 60
-    - 90
-    sens: hausse_bien
-    source: Pratique bancaire
-    ref: Loi LME - delais de paiement
-    cible: '> 30 j'
-  dsi:
-    poids: 0.25
-    seuils:
-    - 15
-    - 30
-    - 60
-    - 90
-    - 120
+    - 40.2
+    - 54.6
+    - 75.4
+    - 81.64
+    - 87.88
     sens: baisse_bien
-    source: INSEE
-    ref: INSEE - Duree ecoulement stocks
-    cible: < 60 j
-  rotation_actif:
-    poids: 0.18
-    seuils:
-    - 0.3
-    - 0.5
-    - 1.0
-    - 1.5
-    - 2.5
-    sens: hausse_bien
-    source: Banque de France
-    ref: BdF - Rotation actif
-    cible: '> 1.0'
-  rotation_stocks:
-    poids: 0.12
-    seuils:
-    - 1
-    - 2
-    - 4
-    - 8
-    - 15
-    sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Rotation stocks
-    cible: '> 4'
-  rotation_immobilisations:
-    poids: 0.08
-    seuils:
-    - 0.3
-    - 0.5
-    - 1.0
-    - 1.5
-    - 2.5
-    sens: hausse_bien
-    source: INSEE
-    ref: INSEE - Intensite capitalistique
-    cible: '> 1.0'
-  cycle_conversion_tresorerie:
-    poids: 0.07
-    seuils:
-    - 0
-    - 30
-    - 60
-    - 90
-    - 120
-    sens: baisse_bien
-    source: Damodaran (NYU)
-    ref: Damodaran - Working capital
-    cible: 30-90 j
-risque_solvabilite:
-  ratio_solvabilite:
-    poids: 0.3
-    seuils:
-    - 10
-    - 25
-    - 50
-    - 100
-    - 200
-    sens: hausse_bien
-    source: Bale III
-    ref: BIS - Ratio de solvabilite
-    cible: '> 50%'
-  ratio_couverture_dettes:
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  poids_bfr_exploitation:
     poids: 0.2
     seuils:
-    - 1.0
-    - 1.2
-    - 1.5
-    - 2.0
-    - 3.0
-    sens: hausse_bien
-    source: Pratique bancaire
-    ref: Covenants bancaires
-    cible: '> 1.5'
-  ratio_liquidite_large:
+    - 30.1
+    - 67.6
+    - 113.3
+    - 127.01
+    - 140.72
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+endettement:
+  gearing:
+    poids: 0.3
+    seuils:
+    - 6.7
+    - 27.8
+    - 70.0
+    - 82.66
+    - 95.32
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  dette_nette_fonds_propres:
+    poids: 0.3
+    seuils:
+    - -50.6
+    - -13.8
+    - 26.9
+    - 39.11
+    - 51.32
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  cout_apparent_endettement:
     poids: 0.15
     seuils:
-    - 0.5
-    - 1.0
-    - 1.5
+    - 1.2
     - 2.5
-    - 4.0
-    sens: hausse_bien
-    source: Bale III
-    ref: BIS - LCR elargi
-    cible: '> 1.5'
+    - 4.7
+    - 5.36
+    - 6.02
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  poids_interets_ebg:
+    poids: 0.25
+    seuils:
+    - 0.6
+    - 2.6
+    - 7.0
+    - 8.32
+    - 9.64
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+partage_valeur:
+  repartition_personnel:
+    poids: 0.5
+    seuils:
+    - 63.3
+    - 75.0
+    - 85.9
+    - 89.17
+    - 92.44
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  repartition_etat:
+    poids: 0.25
+    seuils:
+    - 2.5
+    - 4.9
+    - 8.1
+    - 9.06
+    - 10.02
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+  repartition_preteurs:
+    poids: 0.25
+    seuils:
+    - 0.2
+    - 0.6
+    - 1.6
+    - 1.9
+    - 2.2
+    sens: baisse_bien
+    source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cible: ''
+categories:
+  croissance:
+    ratios_actifs:
+    - croissance_ca
+    - croissance_va
+  rentabilite:
+    ratios_actifs:
+    - taux_excedent_brut_global
+    - taux_marge
+    - taux_valeur_ajoutee
+    - rentabilite_financiere_capitaux_propres
+    - rentabilite_brute_capital_exploitation
+    - rendement_capital_exploitation
+  gestion_activite:
+    ratios_actifs:
+    - dso
+    - dpo
+    - poids_bfr_exploitation
+  endettement:
+    ratios_actifs:
+    - gearing
+    - dette_nette_fonds_propres
+    - cout_apparent_endettement
+    - poids_interets_ebg
+  partage_valeur:
+    ratios_actifs:
+    - repartition_personnel
+    - repartition_etat
+    - repartition_preteurs

@@ -38,6 +38,12 @@ SCORE_COLORS = {
     "fragile":    THEME["bad"],
 }
 
+# ancre basse du degrade continu : rouge TRES fonce a 0
+ROUGE_FONCE = "#7F1D1D"
+# ancre intermediaire : vert jaunatre a 70, le vert plein n'arrive
+# qu'a 100 -- la couleur doit changer a chaque tranche de 5 %
+VERT_DEGRADE = "#65A30D"
+
 
 def get_score_color(score):
     """Couleur d'un score (0-100), meme bareme que le dashboard."""
@@ -48,6 +54,35 @@ def get_score_color(score):
     if score >= SEUIL_SURVEILLANCE:
         return SCORE_COLORS["surveiller"]
     return SCORE_COLORS["fragile"]
+
+
+def _mix_hex(h1, h2, t):
+    """Melange lineaire de deux couleurs hex (t dans [0, 1])."""
+    a = [int(h1.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    b = [int(h2.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    return "#" + "".join(f"{round(x + (y - x) * max(0.0, min(1.0, t))):02X}"
+                         for x, y in zip(a, b))
+
+
+def get_score_gradient(score):
+    """Couleur CONTINUE d'un score (0-100), degrade sur TOUTE l'echelle.
+
+    Rouge fonce a 0, rouge a 20, ambre a 40, vert jaunatre a 70 puis
+    vert plein a 100 : chaque tranche de 5 % a sa nuance propre
+    (100 % vert, 95 % vert degrades, 90 % vert degrades encore...).
+    """
+    if score is None:
+        return THEME["muted"]
+    s = max(0.0, min(100.0, float(score)))
+    if s <= 20:
+        return _mix_hex(ROUGE_FONCE, SCORE_COLORS["fragile"], s / 20)
+    if s <= 40:
+        return _mix_hex(SCORE_COLORS["fragile"], SCORE_COLORS["surveiller"],
+                        (s - 20) / 20)
+    if s <= 70:
+        return _mix_hex(SCORE_COLORS["surveiller"], VERT_DEGRADE,
+                        (s - 40) / 30)
+    return _mix_hex(VERT_DEGRADE, SCORE_COLORS["solide"], (s - 70) / 30)
 
 
 def get_score_verdict(score):
@@ -82,18 +117,26 @@ def get_score_label(score):
 # CATEGORIES (une couleur par categorie, graphs multi-series)
 # ============================================================
 CATEGORIES = {
-    "liquidite":          "#0EA5E9",   # Bleu ciel
-    "endettement":        "#E11D48",   # Framboise
-    "rentabilite":        "#10B981",   # Emeraude
     "croissance":         "#8B5CF6",   # Violet
+    "rentabilite":        "#10B981",   # Emeraude
     "gestion_activite":   "#F59E0B",   # Ambre
-    "risque_solvabilite": "#14B8A6",   # Turquoise
+    "endettement":        "#E11D48",   # Framboise
+    "partage_valeur":     "#0EA5E9",   # Bleu ciel
 }
 
 
 def get_categorie_color(cat):
     """Couleur d'une categorie (fallback : accent)."""
     return CATEGORIES.get(cat, THEME["accent"])
+
+
+def tint_hex(hex_color, t):
+    """Couleur teinte : melange blanc -> hex_color selon t (0 = blanc, 1 = pleine).
+
+    Sert aux representations denses (treemap) : la couleur de la
+    categorie est conservee, son intensite porte le niveau du score.
+    """
+    return _mix_hex("#FFFFFF", hex_color, t)
 
 
 # ============================================================

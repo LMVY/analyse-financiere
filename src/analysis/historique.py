@@ -8,19 +8,21 @@ Pour chaque ratio :
 
 # Classification des ratios
 RATIOS_STOCK = {
-    # Stock = on garde N seulement
-    "gearing", "levier_financier", "dette_nette_fonds_propres",
-    "autonomie_financiere", "equilibre_financier", "current_ratio", "quick_ratio",
-    "cash_ratio", "liquidite_immediate",
-    "dette_nette_ebitda", "ratio_solvabilite", "ratio_couverture_dettes",
-    "ratio_liquidite_large", "capacite_desendettement",
+    # Stock = photo au dernier jour (les fleches de tendance ne
+    # s'affichent pas pour ces ratios) ; la moyenne couvre tout de
+    # meme tous les exercices, comme pour les ratios de flux.
+    "gearing", "dette_nette_fonds_propres", "cout_apparent_endettement",
 }
 
 RATIOS_FLUX = {
     # Flux = moyenne + tendance
-    "marge_brute", "marge_ebitda", "marge_nette", "marge_operationnelle",
-    "roe", "roa", "roce", "dpo", "dsi", "rotation_stocks", "rotation_actif", "rotation_immobilisations", "cycle_conversion_tresorerie",
-    "tresorerie_ca", "couverture_caf_dette",
+    "croissance_ca", "croissance_va", "taux_valeur_ajoutee",
+    "taux_marge",
+    "taux_excedent_brut_global", "rentabilite_financiere_capitaux_propres",
+    "rentabilite_brute_capital_exploitation",
+    "rendement_capital_exploitation", "dso", "dpo",
+    "poids_interets_ebg", "repartition_personnel", "repartition_etat",
+    "repartition_preteurs",
 }
 
 def tendance_ratio(valeurs: list) -> str:
@@ -79,13 +81,18 @@ def calculer_historique(ratios_par_annee: dict) -> dict:
         # Determiner le type
         if nom in RATIOS_STOCK:
             type_ratio = "stock"
-            moyenne = val_n  # pas de moyenne pour un stock
         else:
             type_ratio = "flux"
-            vals_valides = [v for v in valeurs if v is not None]
-            moyenne = sum(vals_valides) / len(vals_valides) if vals_valides else None
 
-        # Tendance
+        # MEME REGLE POUR TOUS LES RATIOS (stock et flux) : la
+        # moyenne affichee est la moyenne arithmetique des valeurs
+        # du ratio sur tous les exercices fournis (les exercices ou
+        # le ratio n'est pas calculable sont ecartes du denominateur).
+        vals_valides = [v for v in valeurs if v is not None]
+        moyenne = (sum(vals_valides) / len(vals_valides)
+                   if vals_valides else None)
+
+        # Tendance : flux uniquement (un stock se lit en niveau)
         tend = tendance_ratio(valeurs) if type_ratio == "flux" else "→"
 
         result[nom] = {

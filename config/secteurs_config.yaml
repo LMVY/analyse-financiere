@@ -1,532 +1,1655 @@
 # ============================================================
-# REFERENTIEL SECTORIEL - Ratios par secteur d'activite
+# REFERENTIEL SECTORIEL - 18 ratios Banque de France par secteur
 # ============================================================
-# Sources :
-#   - INSEE (Esane 2023) : taux de marge par secteur
-#   - Banque de France (FIBEN) : DSO, DPO, gearing, autonomie
-#   - CreditSafe : delais de paiement sectoriels
-#
-# Pour chaque secteur :
-#   - code_naf_prefix : prefixes NAF/APE correspondants
-#   - ratios : mediane + quartiles (Q1, Q3) pour chaque ratio
-#   - ratios_desactives : ratios non pertinents pour ce secteur
-#     (exclus du scoring sectoriel)
-#
-# Les ratios couvrent les 6 categories : liquidite, endettement,
-# rentabilite, croissance, gestion_activite, risque_solvabilite.
-#
-# UTILISATION :
-#   Le scoring compare la valeur de l'entreprise
-#   a la distribution sectorielle (Q1, mediane, Q3)
+# Quartiles REELS des fascicules de resultats sectoriels 2024,
+# Banque de France - Direction des Entreprises, base FIBEN
+# (donnees 2024, publiees en octobre 2025) : couverture des 17
+# sections NAF rev. 2 (A a S, hors K) - construction F, commerce G,
+# transport H, hebergement I, information J, immobilier L,
+# services M, agriculture A, industries extractives B,
+# electricite/gaz D, eau/dechets E, services administratifs N,
+# enseignement P, sante Q, arts/spectacles R, autres services S.
+# Industrie : quartiles du fascicule division 28 (machines),
+#   donnees 2023 - plus precis que la section C agreggee.
+# "services" couvre les sections M et N : la section M (activites
+#   specialisees) sert de reference.
+# Chaque ratio porte : q1 (25e percentile), mediane (50e), q3 (75e)
+#   et sa source. Extraction annuelle :
+#   python scripts/extraction_secteurs_bdf.py
+# Caveat : les delais de reglement BdF sont en TTC, le moteur les
+#   calcule en HT (cf. src/reporting/glossaire).
+# Scoring : position de l'entreprise dans la distribution
+#   (cf. src/scoring/sector_scorer.py).
 # ============================================================
-
 industrie:
   label: Industrie
   code_naf_prefix:
   - C
   ratios:
-    marge_brute:
-      mediane: 30
-      q1: 20
-      q3: 45
-    marge_ebitda:
-      mediane: 12
-      q1: 7
-      q3: 18
-    marge_nette:
-      mediane: 4
-      q1: 2
-      q3: 7
-    roe:
-      mediane: 9
-      q1: 4
-      q3: 15
-    dpo:
-      mediane: 60
-      q1: 45
-      q3: 80
-    dsi:
-      mediane: 60
-      q1: 35
-      q3: 95
-    gearing:
-      mediane: 80
-      q1: 45
-      q3: 130
-    autonomie_financiere:
-      mediane: 35
-      q1: 22
-      q3: 50
-    current_ratio:
-      mediane: 1.6
-      q1: 1.2
-      q3: 2.2
-    quick_ratio:
-      mediane: 1.0
-      q1: 0.7
-      q3: 1.5
-    dette_nette_ebitda:
-      mediane: 2.0
-      q1: 1.0
-      q3: 3.5
     croissance_ca:
-      mediane: 3
-      q1: -2
-      q3: 8
-    ratio_solvabilite:
-      mediane: 30
-      q1: 18
-      q3: 45
-    rotation_actif:
-      mediane: 1.2
-      q1: 0.8
-      q3: 1.8
-    rotation_stocks:
-      mediane: 5
-      q1: 3
-      q3: 8
+      mediane: 4.9
+      q1: -5.5
+      q3: 17.5
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    croissance_va:
+      mediane: 6.4
+      q1: -6.8
+      q3: 20.2
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    taux_valeur_ajoutee:
+      mediane: 37.9
+      q1: 29.3
+      q3: 45.8
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    taux_marge:
+      mediane: 21.3
+      q1: 10.1
+      q3: 33.6
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    taux_excedent_brut_global:
+      mediane: 8.4
+      q1: 4.1
+      q3: 14.3
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    rentabilite_financiere_capitaux_propres:
+      mediane: 13.5
+      q1: 5.1
+      q3: 24.3
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    rentabilite_brute_capital_exploitation:
+      mediane: 14.6
+      q1: 6.0
+      q3: 29.7
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    rendement_capital_exploitation:
+      mediane: 69.5
+      q1: 45.0
+      q3: 116.4
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    dso:
+      mediane: 56.7
+      q1: 36.5
+      q3: 80.3
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    dpo:
+      mediane: 54.6
+      q1: 40.2
+      q3: 75.4
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    poids_bfr_exploitation:
+      mediane: 67.6
+      q1: 30.1
+      q3: 113.3
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    gearing:
+      mediane: 27.8
+      q1: 6.7
+      q3: 70.0
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    dette_nette_fonds_propres:
+      mediane: -13.8
+      q1: -50.6
+      q3: 26.9
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    cout_apparent_endettement:
+      mediane: 2.5
+      q1: 1.2
+      q3: 4.7
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    poids_interets_ebg:
+      mediane: 2.6
+      q1: 0.6
+      q3: 7.0
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    repartition_personnel:
+      mediane: 75.0
+      q1: 63.3
+      q3: 85.9
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    repartition_etat:
+      mediane: 4.9
+      q1: 2.5
+      q3: 8.1
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
+    repartition_preteurs:
+      mediane: 0.6
+      q1: 0.2
+      q3: 1.6
+      source: Banque de France - fascicule sectoriel division 28 (machines), donnees 2023, base FIBEN
   ratios_desactives: []
 construction:
   label: Construction / BTP
   code_naf_prefix:
   - F
   ratios:
-    marge_brute:
-      mediane: 20
-      q1: 12
-      q3: 32
-    marge_ebitda:
-      mediane: 7
-      q1: 4
-      q3: 12
-    marge_nette:
-      mediane: 2.5
-      q1: 1
-      q3: 5
-    roe:
-      mediane: 7
-      q1: 3
-      q3: 13
-    dpo:
-      mediane: 75
-      q1: 55
-      q3: 100
-    dsi:
-      mediane: 15
-      q1: 5
-      q3: 35
-    gearing:
-      mediane: 90
-      q1: 50
-      q3: 150
-    autonomie_financiere:
-      mediane: 28
-      q1: 15
-      q3: 42
-    current_ratio:
-      mediane: 1.3
-      q1: 1.05
-      q3: 1.6
-    quick_ratio:
-      mediane: 1.15
-      q1: 0.9
-      q3: 1.45
-    dette_nette_ebitda:
-      mediane: 2.5
-      q1: 1.5
-      q3: 4.0
     croissance_ca:
-      mediane: 4
-      q1: -3
-      q3: 10
-    ratio_solvabilite:
-      mediane: 25
-      q1: 15
-      q3: 38
-    rotation_actif:
-      mediane: 1.5
-      q1: 1.0
-      q3: 2.2
+      mediane: 0.8
+      q1: -9.9
+      q3: 12.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    croissance_va:
+      mediane: 3.1
+      q1: -9.0
+      q3: 15.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    taux_valeur_ajoutee:
+      mediane: 39.2
+      q1: 30.6
+      q3: 47.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    taux_marge:
+      mediane: 18.8
+      q1: 9.6
+      q3: 30.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    taux_excedent_brut_global:
+      mediane: 7.5
+      q1: 4.0
+      q3: 12.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 17.5
+      q1: 6.6
+      q3: 32.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    rentabilite_brute_capital_exploitation:
+      mediane: 24.7
+      q1: 11.1
+      q3: 52.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    rendement_capital_exploitation:
+      mediane: 144.4
+      q1: 89.6
+      q3: 240.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    dso:
+      mediane: 61.4
+      q1: 36.9
+      q3: 87.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    dpo:
+      mediane: 52.2
+      q1: 36.6
+      q3: 72.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    poids_bfr_exploitation:
+      mediane: 23.9
+      q1: 0.3
+      q3: 49.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    gearing:
+      mediane: 29.2
+      q1: 10.2
+      q3: 68.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    dette_nette_fonds_propres:
+      mediane: -34.5
+      q1: -73.0
+      q3: 12.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    cout_apparent_endettement:
+      mediane: 3.6
+      q1: 1.9
+      q3: 6.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    poids_interets_ebg:
+      mediane: 3.0
+      q1: 0.9
+      q3: 7.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    repartition_personnel:
+      mediane: 78.1
+      q1: 66.6
+      q3: 86.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    repartition_etat:
+      mediane: 4.4
+      q1: 2.4
+      q3: 7.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
+    repartition_preteurs:
+      mediane: 0.6
+      q1: 0.2
+      q3: 1.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section F)
   ratios_desactives: []
 commerce:
   label: Commerce
   code_naf_prefix:
   - G
   ratios:
-    marge_brute:
-      mediane: 30
-      q1: 18
-      q3: 45
-    marge_ebitda:
-      mediane: 6
-      q1: 3
-      q3: 11
-    marge_nette:
-      mediane: 2
-      q1: 0.5
-      q3: 4
-    roe:
-      mediane: 8
-      q1: 3
-      q3: 15
-    dpo:
-      mediane: 55
-      q1: 35
-      q3: 75
-    dsi:
-      mediane: 70
-      q1: 40
-      q3: 110
-    gearing:
-      mediane: 70
-      q1: 35
-      q3: 120
-    autonomie_financiere:
-      mediane: 38
-      q1: 25
-      q3: 55
-    current_ratio:
-      mediane: 1.4
-      q1: 1.1
-      q3: 1.9
-    quick_ratio:
-      mediane: 0.7
-      q1: 0.5
-      q3: 1.1
-    dette_nette_ebitda:
-      mediane: 2.5
-      q1: 1.2
-      q3: 4.5
     croissance_ca:
-      mediane: 2
-      q1: -3
-      q3: 7
-    ratio_solvabilite:
-      mediane: 30
-      q1: 18
-      q3: 45
-    rotation_actif:
-      mediane: 2.0
-      q1: 1.4
+      mediane: 1.2
+      q1: -5.8
+      q3: 8.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    croissance_va:
+      mediane: 0.6
+      q1: -10.4
+      q3: 11.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    taux_valeur_ajoutee:
+      mediane: 20.2
+      q1: 12.9
+      q3: 26.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    taux_marge:
+      mediane: 24.4
+      q1: 11.3
+      q3: 38.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    taux_excedent_brut_global:
+      mediane: 4.9
+      q1: 2.2
+      q3: 8.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 12.1
+      q1: 4.2
+      q3: 23.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    rentabilite_brute_capital_exploitation:
+      mediane: 13.5
+      q1: 5.9
+      q3: 28.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    rendement_capital_exploitation:
+      mediane: 59.2
+      q1: 36.4
+      q3: 104.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    dso:
+      mediane: 13.2
+      q1: 3.0
+      q3: 40.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    dpo:
+      mediane: 37.9
+      q1: 24.1
+      q3: 55.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    poids_bfr_exploitation:
+      mediane: 15.9
+      q1: -4.5
+      q3: 56.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    gearing:
+      mediane: 35.2
+      q1: 9.1
+      q3: 97.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    dette_nette_fonds_propres:
+      mediane: -5.3
+      q1: -46.8
+      q3: 52.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    cout_apparent_endettement:
+      mediane: 2.6
+      q1: 1.1
+      q3: 5.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    poids_interets_ebg:
+      mediane: 3.7
+      q1: 0.9
+      q3: 10.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    repartition_personnel:
+      mediane: 70.0
+      q1: 56.9
+      q3: 82.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    repartition_etat:
+      mediane: 7.0
+      q1: 4.0
+      q3: 10.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
+    repartition_preteurs:
+      mediane: 1.0
+      q1: 0.3
       q3: 2.8
-    rotation_stocks:
-      mediane: 8
-      q1: 5
-      q3: 12
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section G)
   ratios_desactives: []
 transport:
   label: Transports et entreposage
   code_naf_prefix:
   - H
   ratios:
-    marge_brute:
-      mediane: 27
-      q1: 16
-      q3: 40
-    marge_ebitda:
-      mediane: 15
-      q1: 9
-      q3: 22
-    marge_nette:
-      mediane: 3
-      q1: 1
-      q3: 6
-    roe:
-      mediane: 8
-      q1: 3
-      q3: 14
-    dpo:
-      mediane: 50
-      q1: 35
-      q3: 70
-    dsi:
-      mediane: 10
-      q1: 3
-      q3: 25
-    gearing:
-      mediane: 110
-      q1: 60
-      q3: 180
-    autonomie_financiere:
-      mediane: 30
-      q1: 18
-      q3: 45
-    current_ratio:
-      mediane: 1.3
-      q1: 1.0
-      q3: 1.7
-    quick_ratio:
-      mediane: 1.2
-      q1: 0.9
-      q3: 1.5
-    dette_nette_ebitda:
-      mediane: 3.0
-      q1: 1.8
-      q3: 4.5
     croissance_ca:
-      mediane: 3
-      q1: -2
-      q3: 8
-    ratio_solvabilite:
-      mediane: 28
-      q1: 16
-      q3: 40
-    rotation_actif:
-      mediane: 1.1
-      q1: 0.7
-      q3: 1.6
+      mediane: 1.8
+      q1: -4.8
+      q3: 9.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    croissance_va:
+      mediane: 2.9
+      q1: -6.7
+      q3: 13.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    taux_valeur_ajoutee:
+      mediane: 43.2
+      q1: 31.7
+      q3: 54.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    taux_marge:
+      mediane: 17.7
+      q1: 5.3
+      q3: 30.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    taux_excedent_brut_global:
+      mediane: 8.6
+      q1: 3.1
+      q3: 15.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 7.8
+      q1: -2.9
+      q3: 21.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    rentabilite_brute_capital_exploitation:
+      mediane: 15.9
+      q1: 6.4
+      q3: 32.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    rendement_capital_exploitation:
+      mediane: 100.9
+      q1: 56.6
+      q3: 210.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    dso:
+      mediane: 48.8
+      q1: 37.2
+      q3: 64.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    dpo:
+      mediane: 46.0
+      q1: 31.2
+      q3: 69.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    poids_bfr_exploitation:
+      mediane: 5.1
+      q1: -11.3
+      q3: 21.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    gearing:
+      mediane: 62.7
+      q1: 14.5
+      q3: 166.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    dette_nette_fonds_propres:
+      mediane: -0.5
+      q1: -60.7
+      q3: 98.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    cout_apparent_endettement:
+      mediane: 3.9
+      q1: 2.0
+      q3: 6.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    poids_interets_ebg:
+      mediane: 6.7
+      q1: 1.9
+      q3: 12.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    repartition_personnel:
+      mediane: 76.4
+      q1: 64.1
+      q3: 88.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    repartition_etat:
+      mediane: 3.8
+      q1: 2.5
+      q3: 6.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
+    repartition_preteurs:
+      mediane: 1.3
+      q1: 0.3
+      q3: 2.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section H)
   ratios_desactives: []
 services:
   label: Services aux entreprises
   code_naf_prefix:
   - M
-  - N
   ratios:
-    marge_brute:
-      mediane: 35
-      q1: 22
-      q3: 55
-    marge_ebitda:
-      mediane: 10
-      q1: 5
-      q3: 18
-    marge_nette:
-      mediane: 4
-      q1: 1.5
-      q3: 8
-    roe:
-      mediane: 10
-      q1: 4
-      q3: 20
-    dpo:
-      mediane: 45
-      q1: 30
-      q3: 65
-    dsi:
-      mediane: 0
-      q1: 0
-      q3: 0
-    gearing:
-      mediane: 40
-      q1: 15
-      q3: 80
-    autonomie_financiere:
-      mediane: 45
-      q1: 30
-      q3: 65
-    current_ratio:
-      mediane: 1.5
-      q1: 1.1
-      q3: 2.1
-    quick_ratio:
-      mediane: 1.45
-      q1: 1.05
-      q3: 1.95
-    dette_nette_ebitda:
-      mediane: 1.5
-      q1: 0.5
-      q3: 3.0
     croissance_ca:
-      mediane: 4
-      q1: 0
-      q3: 9
-    ratio_solvabilite:
-      mediane: 40
-      q1: 25
-      q3: 58
-    rotation_actif:
-      mediane: 1.3
-      q1: 0.9
-      q3: 1.9
-  ratios_desactives:
-  - dsi
-  - rotation_stocks
+      mediane: 3.8
+      q1: -5.2
+      q3: 12.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    croissance_va:
+      mediane: 3.4
+      q1: -7.8
+      q3: 14.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    taux_valeur_ajoutee:
+      mediane: 60.2
+      q1: 41.7
+      q3: 74.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    taux_marge:
+      mediane: 16.3
+      q1: 5.9
+      q3: 30.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    taux_excedent_brut_global:
+      mediane: 9.9
+      q1: 4.1
+      q3: 17.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 20.7
+      q1: 7.9
+      q3: 38.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    rentabilite_brute_capital_exploitation:
+      mediane: 25.7
+      q1: 8.9
+      q3: 63.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    rendement_capital_exploitation:
+      mediane: 174.9
+      q1: 96.8
+      q3: 340.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    dso:
+      mediane: 72.8
+      q1: 43.0
+      q3: 107.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    dpo:
+      mediane: 55.1
+      q1: 29.7
+      q3: 93.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    poids_bfr_exploitation:
+      mediane: 11.7
+      q1: -23.9
+      q3: 49.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    gearing:
+      mediane: 22.2
+      q1: 3.9
+      q3: 67.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    dette_nette_fonds_propres:
+      mediane: -45.3
+      q1: -93.1
+      q3: 2.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    cout_apparent_endettement:
+      mediane: 2.2
+      q1: 0.8
+      q3: 4.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    poids_interets_ebg:
+      mediane: 1.4
+      q1: 0.1
+      q3: 5.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    repartition_personnel:
+      mediane: 79.8
+      q1: 65.5
+      q3: 90.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    repartition_etat:
+      mediane: 4.5
+      q1: 2.2
+      q3: 7.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+    repartition_preteurs:
+      mediane: 0.3
+      q1: 0.0
+      q3: 0.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section M)
+  ratios_desactives: []
 hotellerie_restauration:
   label: Hébergement et restauration
   code_naf_prefix:
   - I
   ratios:
-    marge_brute:
-      mediane: 65
-      q1: 50
-      q3: 78
-    marge_ebitda:
-      mediane: 12
-      q1: 6
-      q3: 20
-    marge_nette:
-      mediane: 3
-      q1: 0.5
-      q3: 7
-    roe:
-      mediane: 6
-      q1: 2
-      q3: 12
-    dpo:
-      mediane: 55
-      q1: 40
-      q3: 75
-    dsi:
-      mediane: 12
-      q1: 5
-      q3: 25
-    gearing:
-      mediane: 120
-      q1: 70
-      q3: 200
-    autonomie_financiere:
-      mediane: 25
-      q1: 12
-      q3: 40
-    current_ratio:
-      mediane: 1.2
-      q1: 0.9
-      q3: 1.6
-    quick_ratio:
-      mediane: 1.0
-      q1: 0.7
-      q3: 1.35
-    dette_nette_ebitda:
-      mediane: 3.5
-      q1: 2.0
-      q3: 5.0
     croissance_ca:
-      mediane: 3
-      q1: -3
-      q3: 9
-    ratio_solvabilite:
-      mediane: 22
-      q1: 12
-      q3: 35
-    rotation_actif:
-      mediane: 1.4
+      mediane: 0.5
+      q1: -4.8
+      q3: 6.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    croissance_va:
+      mediane: 1.3
+      q1: -6.9
+      q3: 10.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    taux_valeur_ajoutee:
+      mediane: 48.7
+      q1: 41.2
+      q3: 56.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    taux_marge:
+      mediane: 20.3
+      q1: 9.4
+      q3: 34.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    taux_excedent_brut_global:
+      mediane: 10.8
+      q1: 5.3
+      q3: 19.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 21.9
+      q1: 7.7
+      q3: 46.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    rentabilite_brute_capital_exploitation:
+      mediane: 15.9
+      q1: 7.1
+      q3: 30.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    rendement_capital_exploitation:
+      mediane: 89.0
+      q1: 46.0
+      q3: 153.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    dso:
+      mediane: 1.0
+      q1: 0.0
+      q3: 5.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    dpo:
+      mediane: 42.7
+      q1: 28.5
+      q3: 70.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    poids_bfr_exploitation:
+      mediane: -30.4
+      q1: -47.4
+      q3: -19.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    gearing:
+      mediane: 59.9
+      q1: 21.1
+      q3: 174.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    dette_nette_fonds_propres:
+      mediane: -12.1
+      q1: -68.1
+      q3: 73.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    cout_apparent_endettement:
+      mediane: 2.3
+      q1: 1.3
+      q3: 3.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    poids_interets_ebg:
+      mediane: 3.3
       q1: 1.0
-      q3: 2.0
+      q3: 9.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    repartition_personnel:
+      mediane: 73.1
+      q1: 59.3
+      q3: 84.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    repartition_etat:
+      mediane: 5.4
+      q1: 3.1
+      q3: 8.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
+    repartition_preteurs:
+      mediane: 0.7
+      q1: 0.3
+      q3: 2.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section I)
   ratios_desactives: []
 information_communication:
   label: Information et communication
   code_naf_prefix:
   - J
   ratios:
-    marge_brute:
-      mediane: 45
-      q1: 30
-      q3: 65
-    marge_ebitda:
-      mediane: 15
-      q1: 8
-      q3: 25
-    marge_nette:
-      mediane: 5
-      q1: 2
-      q3: 12
-    roe:
-      mediane: 10
-      q1: 4
-      q3: 20
+    croissance_ca:
+      mediane: 3.7
+      q1: -5.9
+      q3: 15.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    croissance_va:
+      mediane: 4.1
+      q1: -8.6
+      q3: 18.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    taux_valeur_ajoutee:
+      mediane: 53.0
+      q1: 35.1
+      q3: 70.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    taux_marge:
+      mediane: 16.5
+      q1: 3.6
+      q3: 35.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    taux_excedent_brut_global:
+      mediane: 8.7
+      q1: 2.4
+      q3: 19.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 17.6
+      q1: 4.0
+      q3: 36.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    rentabilite_brute_capital_exploitation:
+      mediane: 18.6
+      q1: 3.9
+      q3: 60.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    rendement_capital_exploitation:
+      mediane: 145.3
+      q1: 56.4
+      q3: 387.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    dso:
+      mediane: 66.4
+      q1: 41.1
+      q3: 101.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
     dpo:
-      mediane: 45
-      q1: 30
-      q3: 65
-    dsi:
-      mediane: 5
-      q1: 0
-      q3: 15
+      mediane: 63.8
+      q1: 38.3
+      q3: 105.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    poids_bfr_exploitation:
+      mediane: -2.2
+      q1: -38.6
+      q3: 30.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
     gearing:
-      mediane: 45
-      q1: 20
-      q3: 90
-    autonomie_financiere:
-      mediane: 42
-      q1: 28
-      q3: 60
-    current_ratio:
-      mediane: 1.7
-      q1: 1.2
-      q3: 2.4
-    quick_ratio:
-      mediane: 1.6
-      q1: 1.1
-      q3: 2.3
-    dette_nette_ebitda:
+      mediane: 17.4
+      q1: 1.0
+      q3: 67.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    dette_nette_fonds_propres:
+      mediane: -51.5
+      q1: -96.1
+      q3: 2.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    cout_apparent_endettement:
+      mediane: 2.5
+      q1: 0.6
+      q3: 4.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    poids_interets_ebg:
       mediane: 1.0
       q1: 0.0
-      q3: 2.5
-    croissance_ca:
-      mediane: 8
-      q1: 2
-      q3: 15
-    ratio_solvabilite:
-      mediane: 42
-      q1: 26
-      q3: 60
-    rotation_actif:
-      mediane: 1.1
-      q1: 0.7
-      q3: 1.7
+      q3: 5.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    repartition_personnel:
+      mediane: 79.1
+      q1: 59.1
+      q3: 92.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    repartition_etat:
+      mediane: 2.9
+      q1: 0.8
+      q3: 6.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
+    repartition_preteurs:
+      mediane: 0.3
+      q1: 0.0
+      q3: 1.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section J)
   ratios_desactives: []
 immobilier:
   label: Immobilier
   code_naf_prefix:
   - L
   ratios:
-    marge_brute:
-      mediane: 55
-      q1: 40
-      q3: 70
-    marge_ebitda:
-      mediane: 45
-      q1: 30
-      q3: 60
-    marge_nette:
-      mediane: 12
-      q1: 5
-      q3: 25
-    roe:
-      mediane: 8
-      q1: 3
-      q3: 15
-    dpo:
-      mediane: 40
-      q1: 25
-      q3: 60
-    dsi:
-      mediane: 0
-      q1: 0
-      q3: 0
-    gearing:
-      mediane: 180
-      q1: 100
-      q3: 280
-    autonomie_financiere:
-      mediane: 20
-      q1: 10
-      q3: 35
-    current_ratio:
-      mediane: 2.0
-      q1: 1.2
-      q3: 3.5
-    quick_ratio:
-      mediane: 1.9
-      q1: 1.1
-      q3: 3.3
-    dette_nette_ebitda:
-      mediane: 6.0
-      q1: 3.0
-      q3: 10.0
     croissance_ca:
-      mediane: 2
-      q1: -3
-      q3: 7
-    ratio_solvabilite:
-      mediane: 18
-      q1: 10
-      q3: 30
-    rotation_actif:
+      mediane: 3.8
+      q1: -1.9
+      q3: 8.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    croissance_va:
+      mediane: 4.2
+      q1: -4.3
+      q3: 11.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    taux_valeur_ajoutee:
+      mediane: 71.2
+      q1: 56.4
+      q3: 85.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    taux_marge:
+      mediane: 72.0
+      q1: 19.2
+      q3: 89.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    taux_excedent_brut_global:
+      mediane: 51.0
+      q1: 12.7
+      q3: 84.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 11.1
+      q1: 1.7
+      q3: 27.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    rentabilite_brute_capital_exploitation:
+      mediane: 8.6
+      q1: 4.3
+      q3: 18.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    rendement_capital_exploitation:
+      mediane: 14.3
+      q1: 7.4
+      q3: 96.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    dso:
+      mediane: 32.4
+      q1: 6.8
+      q3: 77.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    dpo:
+      mediane: 64.7
+      q1: 31.1
+      q3: 135.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    poids_bfr_exploitation:
+      mediane: -3.1
+      q1: -34.9
+      q3: 43.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    gearing:
+      mediane: 80.3
+      q1: 16.6
+      q3: 240.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    dette_nette_fonds_propres:
+      mediane: 18.6
+      q1: -64.6
+      q3: 177.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    cout_apparent_endettement:
+      mediane: 2.8
+      q1: 1.4
+      q3: 4.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    poids_interets_ebg:
+      mediane: 9.3
+      q1: 1.4
+      q3: 29.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    repartition_personnel:
+      mediane: 8.2
+      q1: 0.0
+      q3: 73.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    repartition_etat:
+      mediane: 11.6
+      q1: 5.0
+      q3: 21.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+    repartition_preteurs:
+      mediane: 4.2
+      q1: 0.4
+      q3: 19.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section L)
+  ratios_desactives: []
+agriculture:
+  label: Agriculture, sylviculture et peche
+  code_naf_prefix:
+  - A
+  ratios:
+    croissance_ca:
+      mediane: 1.2
+      q1: -7.3
+      q3: 10.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    croissance_va:
+      mediane: 2.1
+      q1: -12.2
+      q3: 17.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    taux_valeur_ajoutee:
+      mediane: 42.5
+      q1: 28.8
+      q3: 55.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    dso:
+      mediane: 41.0
+      q1: 16.3
+      q3: 74.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    dpo:
+      mediane: 55.6
+      q1: 32.7
+      q3: 93.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    poids_bfr_exploitation:
+      mediane: 79.0
+      q1: 26.5
+      q3: 193.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    rendement_capital_exploitation:
+      mediane: 24.4
+      q1: 15.4
+      q3: 40.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    taux_marge:
+      mediane: 45.0
+      q1: 24.7
+      q3: 66.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    rentabilite_brute_capital_exploitation:
+      mediane: 10.5
+      q1: 5.7
+      q3: 17.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 8.9
+      q1: 0.5
+      q3: 19.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    taux_excedent_brut_global:
+      mediane: 19.1
+      q1: 9.6
+      q3: 31.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    repartition_personnel:
+      mediane: 52.4
+      q1: 33.9
+      q3: 71.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    repartition_preteurs:
+      mediane: 2.4
+      q1: 0.9
+      q3: 5.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    repartition_etat:
+      mediane: 5.3
+      q1: 2.0
+      q3: 11.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    poids_interets_ebg:
+      mediane: 5.6
+      q1: 2.2
+      q3: 11.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    gearing:
+      mediane: 75.7
+      q1: 27.1
+      q3: 179.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    dette_nette_fonds_propres:
+      mediane: 43.0
+      q1: -12.2
+      q3: 146.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+    cout_apparent_endettement:
+      mediane: 2.4
+      q1: 1.6
+      q3: 3.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section A)
+  ratios_desactives: []
+industries_extractives:
+  label: Industries extractives
+  code_naf_prefix:
+  - B
+  ratios:
+    croissance_ca:
+      mediane: 0.2
+      q1: -7.6
+      q3: 9.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    croissance_va:
+      mediane: 2.6
+      q1: -9.7
+      q3: 17.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    taux_valeur_ajoutee:
+      mediane: 37.3
+      q1: 28.6
+      q3: 47.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    dso:
+      mediane: 57.2
+      q1: 44.5
+      q3: 73.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    dpo:
+      mediane: 68.9
+      q1: 50.9
+      q3: 92.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    poids_bfr_exploitation:
+      mediane: 64.4
+      q1: 28.4
+      q3: 116.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    rendement_capital_exploitation:
+      mediane: 24.4
+      q1: 16.4
+      q3: 35.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    taux_marge:
+      mediane: 42.3
+      q1: 26.1
+      q3: 54.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    rentabilite_brute_capital_exploitation:
+      mediane: 9.7
+      q1: 5.1
+      q3: 16.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 9.7
+      q1: 2.1
+      q3: 19.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    taux_excedent_brut_global:
+      mediane: 17.2
+      q1: 10.3
+      q3: 24.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    repartition_personnel:
+      mediane: 49.6
+      q1: 37.8
+      q3: 64.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    repartition_preteurs:
+      mediane: 1.9
+      q1: 0.6
+      q3: 4.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    repartition_etat:
+      mediane: 8.4
+      q1: 4.8
+      q3: 12.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    poids_interets_ebg:
+      mediane: 4.4
+      q1: 1.2
+      q3: 11.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    gearing:
+      mediane: 39.9
+      q1: 9.7
+      q3: 110.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    dette_nette_fonds_propres:
+      mediane: 3.5
+      q1: -45.6
+      q3: 74.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+    cout_apparent_endettement:
+      mediane: 3.4
+      q1: 1.8
+      q3: 5.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section B)
+  ratios_desactives: []
+energie:
+  label: Production et distribution d'electricite et de gaz
+  code_naf_prefix:
+  - D
+  ratios:
+    croissance_ca:
+      mediane: -8.7
+      q1: -19.1
+      q3: 1.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    croissance_va:
+      mediane: -9.2
+      q1: -23.3
+      q3: 7.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    taux_valeur_ajoutee:
+      mediane: 71.6
+      q1: 40.0
+      q3: 80.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    dso:
+      mediane: 56.4
+      q1: 36.5
+      q3: 86.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    dpo:
+      mediane: 84.1
+      q1: 45.5
+      q3: 142.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    poids_bfr_exploitation:
+      mediane: 30.7
+      q1: 0.2
+      q3: 64.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    rendement_capital_exploitation:
+      mediane: 11.2
+      q1: 8.5
+      q3: 17.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    taux_marge:
+      mediane: 92.2
+      q1: 83.9
+      q3: 95.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    rentabilite_brute_capital_exploitation:
+      mediane: 10.0
+      q1: 7.4
+      q3: 14.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 21.7
+      q1: 10.0
+      q3: 45.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    taux_excedent_brut_global:
+      mediane: 66.3
+      q1: 35.7
+      q3: 77.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    repartition_personnel:
+      mediane: 0.0
+      q1: 0.0
+      q3: 2.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    repartition_preteurs:
+      mediane: 9.2
+      q1: 3.6
+      q3: 19.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    repartition_etat:
+      mediane: 12.6
+      q1: 7.7
+      q3: 18.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    poids_interets_ebg:
+      mediane: 10.5
+      q1: 4.2
+      q3: 22.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    gearing:
+      mediane: 182.7
+      q1: 44.6
+      q3: 448.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    dette_nette_fonds_propres:
+      mediane: 131.5
+      q1: 2.2
+      q3: 366.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+    cout_apparent_endettement:
+      mediane: 3.6
+      q1: 2.2
+      q3: 5.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section D)
+  ratios_desactives: []
+eau_dechets:
+  label: Eau, assainissement, gestion des dechets
+  code_naf_prefix:
+  - E
+  ratios:
+    croissance_ca:
+      mediane: 4.6
+      q1: -3.0
+      q3: 13.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    croissance_va:
+      mediane: 5.3
+      q1: -7.5
+      q3: 19.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    taux_valeur_ajoutee:
+      mediane: 36.1
+      q1: 22.9
+      q3: 49.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    dso:
+      mediane: 64.7
+      q1: 45.4
+      q3: 90.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    dpo:
+      mediane: 69.7
+      q1: 44.7
+      q3: 105.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    poids_bfr_exploitation:
+      mediane: 20.9
+      q1: -2.2
+      q3: 48.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    rendement_capital_exploitation:
+      mediane: 51.5
+      q1: 30.1
+      q3: 96.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    taux_marge:
+      mediane: 30.8
+      q1: 15.3
+      q3: 48.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    rentabilite_brute_capital_exploitation:
+      mediane: 15.6
+      q1: 7.5
+      q3: 28.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 15.0
+      q1: 4.8
+      q3: 31.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    taux_excedent_brut_global:
+      mediane: 11.2
+      q1: 5.8
+      q3: 18.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    repartition_personnel:
+      mediane: 62.2
+      q1: 44.6
+      q3: 78.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    repartition_preteurs:
+      mediane: 1.5
+      q1: 0.4
+      q3: 3.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    repartition_etat:
+      mediane: 5.8
+      q1: 2.9
+      q3: 10.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    poids_interets_ebg:
+      mediane: 4.6
+      q1: 1.3
+      q3: 10.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    gearing:
+      mediane: 48.7
+      q1: 13.4
+      q3: 127.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    dette_nette_fonds_propres:
+      mediane: -1.1
+      q1: -50.5
+      q3: 73.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+    cout_apparent_endettement:
+      mediane: 3.6
+      q1: 1.9
+      q3: 5.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section E)
+  ratios_desactives: []
+services_administratifs:
+  label: Services administratifs et de soutien
+  code_naf_prefix:
+  - N
+  ratios:
+    croissance_ca:
+      mediane: 3.4
+      q1: -5.5
+      q3: 13.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    croissance_va:
+      mediane: 3.7
+      q1: -7.6
+      q3: 15.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    taux_valeur_ajoutee:
+      mediane: 63.7
+      q1: 40.7
+      q3: 84.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    dso:
+      mediane: 58.2
+      q1: 37.8
+      q3: 81.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    dpo:
+      mediane: 61.1
+      q1: 34.5
+      q3: 110.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    poids_bfr_exploitation:
+      mediane: 5.2
+      q1: -19.4
+      q3: 32.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    rendement_capital_exploitation:
+      mediane: 189.6
+      q1: 64.6
+      q3: 645.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    taux_marge:
+      mediane: 10.5
+      q1: 1.8
+      q3: 33.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    rentabilite_brute_capital_exploitation:
+      mediane: 21.5
+      q1: 7.9
+      q3: 49.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 14.8
+      q1: 3.7
+      q3: 31.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    taux_excedent_brut_global:
+      mediane: 6.3
+      q1: 2.1
+      q3: 15.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    repartition_personnel:
+      mediane: 85.3
+      q1: 61.0
+      q3: 94.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    repartition_preteurs:
       mediane: 0.4
-      q1: 0.25
-      q3: 0.6
-  ratios_desactives:
-  - dsi
-  - rotation_stocks
-  - marge_brute
+      q1: 0.0
+      q3: 1.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    repartition_etat:
+      mediane: 3.5
+      q1: 2.4
+      q3: 6.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    poids_interets_ebg:
+      mediane: 3.0
+      q1: 0.4
+      q3: 9.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    gearing:
+      mediane: 29.2
+      q1: 5.4
+      q3: 98.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    dette_nette_fonds_propres:
+      mediane: -45.6
+      q1: -101.7
+      q3: 23.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+    cout_apparent_endettement:
+      mediane: 3.1
+      q1: 1.0
+      q3: 6.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section N)
+  ratios_desactives: []
+enseignement:
+  label: Enseignement
+  code_naf_prefix:
+  - P
+  ratios:
+    croissance_ca:
+      mediane: 3.9
+      q1: -5.1
+      q3: 13.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    croissance_va:
+      mediane: 2.3
+      q1: -11.4
+      q3: 15.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    taux_valeur_ajoutee:
+      mediane: 52.3
+      q1: 38.6
+      q3: 62.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    dso:
+      mediane: 68.6
+      q1: 35.7
+      q3: 108.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    dpo:
+      mediane: 56.3
+      q1: 31.8
+      q3: 93.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    poids_bfr_exploitation:
+      mediane: 4.9
+      q1: -33.5
+      q3: 39.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    rendement_capital_exploitation:
+      mediane: 143.8
+      q1: 81.9
+      q3: 276.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    taux_marge:
+      mediane: 21.1
+      q1: 5.6
+      q3: 39.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    rentabilite_brute_capital_exploitation:
+      mediane: 26.9
+      q1: 6.9
+      q3: 71.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 21.9
+      q1: 5.6
+      q3: 44.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    taux_excedent_brut_global:
+      mediane: 10.9
+      q1: 3.8
+      q3: 22.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    repartition_personnel:
+      mediane: 72.4
+      q1: 54.4
+      q3: 86.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    repartition_preteurs:
+      mediane: 0.4
+      q1: 0.1
+      q3: 1.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    repartition_etat:
+      mediane: 8.5
+      q1: 4.5
+      q3: 13.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    poids_interets_ebg:
+      mediane: 1.5
+      q1: 0.2
+      q3: 6.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    gearing:
+      mediane: 26.8
+      q1: 5.4
+      q3: 76.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    dette_nette_fonds_propres:
+      mediane: -42.6
+      q1: -89.7
+      q3: 13.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+    cout_apparent_endettement:
+      mediane: 2.6
+      q1: 1.0
+      q3: 4.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section P)
+  ratios_desactives: []
+sante:
+  label: Sante humaine et action sociale
+  code_naf_prefix:
+  - Q
+  ratios:
+    croissance_ca:
+      mediane: 4.2
+      q1: -0.6
+      q3: 9.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    croissance_va:
+      mediane: 3.9
+      q1: -2.9
+      q3: 11.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    taux_valeur_ajoutee:
+      mediane: 67.6
+      q1: 57.4
+      q3: 77.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    dso:
+      mediane: 17.8
+      q1: 4.8
+      q3: 37.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    dpo:
+      mediane: 45.3
+      q1: 25.0
+      q3: 79.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    poids_bfr_exploitation:
+      mediane: -13.9
+      q1: -33.9
+      q3: 1.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    rendement_capital_exploitation:
+      mediane: 163.4
+      q1: 95.4
+      q3: 282.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    taux_marge:
+      mediane: 15.1
+      q1: 5.6
+      q3: 29.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    rentabilite_brute_capital_exploitation:
+      mediane: 23.5
+      q1: 8.0
+      q3: 55.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 20.2
+      q1: 6.9
+      q3: 41.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    taux_excedent_brut_global:
+      mediane: 11.9
+      q1: 5.7
+      q3: 21.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    repartition_personnel:
+      mediane: 77.9
+      q1: 65.9
+      q3: 87.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    repartition_preteurs:
+      mediane: 0.5
+      q1: 0.1
+      q3: 1.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    repartition_etat:
+      mediane: 7.6
+      q1: 5.2
+      q3: 10.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    poids_interets_ebg:
+      mediane: 2.4
+      q1: 0.5
+      q3: 7.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    gearing:
+      mediane: 36.6
+      q1: 10.5
+      q3: 94.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    dette_nette_fonds_propres:
+      mediane: -24.8
+      q1: -71.1
+      q3: 24.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+    cout_apparent_endettement:
+      mediane: 2.7
+      q1: 1.1
+      q3: 5.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section Q)
+  ratios_desactives: []
+arts_spectacles:
+  label: Arts, spectacles et activites recreatives
+  code_naf_prefix:
+  - R
+  ratios:
+    croissance_ca:
+      mediane: 4.0
+      q1: -3.3
+      q3: 13.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    croissance_va:
+      mediane: 4.5
+      q1: -6.3
+      q3: 19.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    taux_valeur_ajoutee:
+      mediane: 50.4
+      q1: 36.9
+      q3: 62.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    dso:
+      mediane: 17.7
+      q1: 2.4
+      q3: 48.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    dpo:
+      mediane: 54.6
+      q1: 29.1
+      q3: 96.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    poids_bfr_exploitation:
+      mediane: -23.9
+      q1: -57.5
+      q3: 4.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    rendement_capital_exploitation:
+      mediane: 67.7
+      q1: 38.0
+      q3: 149.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    taux_marge:
+      mediane: 27.6
+      q1: 8.6
+      q3: 46.2
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    rentabilite_brute_capital_exploitation:
+      mediane: 16.9
+      q1: 5.7
+      q3: 37.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 20.6
+      q1: 4.8
+      q3: 42.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    taux_excedent_brut_global:
+      mediane: 13.5
+      q1: 4.4
+      q3: 25.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    repartition_personnel:
+      mediane: 64.7
+      q1: 48.3
+      q3: 84.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    repartition_preteurs:
+      mediane: 0.6
+      q1: 0.1
+      q3: 2.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    repartition_etat:
+      mediane: 6.3
+      q1: 3.0
+      q3: 11.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    poids_interets_ebg:
+      mediane: 2.3
+      q1: 0.4
+      q3: 7.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    gearing:
+      mediane: 39.6
+      q1: 11.6
+      q3: 117.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    dette_nette_fonds_propres:
+      mediane: -36.7
+      q1: -89.2
+      q3: 39.1
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+    cout_apparent_endettement:
+      mediane: 2.3
+      q1: 1.0
+      q3: 4.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section R)
+  ratios_desactives: []
+autres_services:
+  label: Autres activites de services
+  code_naf_prefix:
+  - S
+  ratios:
+    croissance_ca:
+      mediane: 4.1
+      q1: -2.3
+      q3: 10.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    croissance_va:
+      mediane: 4.2
+      q1: -4.7
+      q3: 13.8
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    taux_valeur_ajoutee:
+      mediane: 50.7
+      q1: 40.4
+      q3: 64.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    dso:
+      mediane: 36.8
+      q1: 17.3
+      q3: 59.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    dpo:
+      mediane: 50.2
+      q1: 33.2
+      q3: 87.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    poids_bfr_exploitation:
+      mediane: 3.6
+      q1: -28.3
+      q3: 33.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    rendement_capital_exploitation:
+      mediane: 88.0
+      q1: 54.1
+      q3: 169.4
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    taux_marge:
+      mediane: 18.1
+      q1: 6.0
+      q3: 35.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    rentabilite_brute_capital_exploitation:
+      mediane: 17.9
+      q1: 6.6
+      q3: 34.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    rentabilite_financiere_capitaux_propres:
+      mediane: 15.4
+      q1: 4.3
+      q3: 29.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    taux_excedent_brut_global:
+      mediane: 9.7
+      q1: 3.8
+      q3: 18.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    repartition_personnel:
+      mediane: 77.1
+      q1: 61.0
+      q3: 89.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    repartition_preteurs:
+      mediane: 0.6
+      q1: 0.2
+      q3: 1.6
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    repartition_etat:
+      mediane: 4.5
+      q1: 2.7
+      q3: 7.7
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    poids_interets_ebg:
+      mediane: 2.9
+      q1: 0.7
+      q3: 7.3
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    gearing:
+      mediane: 28.5
+      q1: 8.9
+      q3: 87.5
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    dette_nette_fonds_propres:
+      mediane: -27.3
+      q1: -67.3
+      q3: 30.9
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+    cout_apparent_endettement:
+      mediane: 3.1
+      q1: 1.6
+      q3: 5.0
+      source: Banque de France - fascicule de resultats sectoriels 2024, base FIBEN (section S)
+  ratios_desactives: []

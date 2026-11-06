@@ -10,6 +10,9 @@ Principes :
 
 from dataclasses import dataclass, field, asdict
 
+# Sections du format standard (source unique pour les extracteurs)
+SECTIONS = ("actif", "passif", "compte_resultat")
+
 # --------------------------------------------------------------------------
 # Constantes ajustables
 # --------------------------------------------------------------------------

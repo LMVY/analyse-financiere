@@ -1,17 +1,35 @@
 """Validateur de coherence des donnees comptables et des ratios.
 
-18 tests repartis en 2 niveaux :
-- Niveau 1 (6) : validations de base
-- Niveau 2 (12) : validations comptables
+39 tests repartis en 6 niveaux :
+- Niveau 1 (6) : validations de base ;
+- Niveau 2 (12) : validations comptables ;
+- Niveau 2b (4) : coherence economique (ordre des marges, EBITDA vs CA,
+  resultat net vs EBITDA, VA vs CA) ;
+- Niveau 2c (10) : controles complementaires (equilibre N-1, structure de
+  l'actif, details des totaux du passif, chaine du resultat, signes,
+  continuite N vs N-1) ;
+- Niveau 2d (4) : controles d'enrichissement (charges sociales,
+  dotations, FDR, couverture des interets, position vs mediane) ;
+- Niveau 3 (3) : coherence sectorielle - identifie clairement, ratio par
+  ratio, les valeurs incompatibles avec le secteur detecte (hors domaine
+  Q1/Q3 elargi, ratios normalement non pertinents pour le secteur).
+
+Les niveaux OK / WARN / ERREUR suivent le meme code couleur que le
+reste de l'application : vert / ambre / rouge.
 """
 
 class Validator:
     """Valide la coherence des donnees et des ratios."""
 
-    def __init__(self, agregats: dict, ratios: dict, data_brute: dict = None):
+    def __init__(self, agregats: dict, ratios: dict, data_brute: dict = None,
+                 secteur_code: str = None, secteurs_config: dict = None,
+                 data_n1: dict = None):
         self.agregats = agregats
         self.ratios = ratios
         self.data = data_brute or {}
+        self.secteur_code = secteur_code
+        self.secteurs = secteurs_config or {}
+        self.data_n1 = data_n1 or {}
         self.rapport = []
         self.erreurs = 0
         self.avertissements = 0
@@ -72,6 +90,36 @@ class Validator:
         self._test_charges_personnel_va()
         self._test_variation_n_n1()
         self._test_analyse_verticale()
+
+        # === NIVEAU 2B : COHERENCE ECONOMIQUE ===
+        self._test_ordre_marges()
+        self._test_ebitda_ca()
+        self._test_rn_ebitda()
+        self._test_va_ca()
+
+        # === NIVEAU 2C : CONTROLES COMPLEMENTAIRES ===
+        self._test_equilibre_bilan_n1()
+        self._test_structure_actif()
+        self._test_detail_dettes()
+        self._test_detail_capitaux_propres()
+        self._test_resultat_courant()
+        self._test_resultat_net_chaine()
+        self._test_signes_bilan()
+        self._test_continuite_n_n1()
+        self._test_dettes_financieres_incluses()
+        self._test_capital_vs_cp()
+
+        # === NIVEAU 2D : CONTROLES D'ENRICHISSEMENT ===
+        self._test_charges_sociales_salaires()
+        self._test_dotations_immobilisations()
+        self._test_fdr_positif()
+        self._test_couverture_interets_ebe()
+
+        # === NIVEAU 3 : COHERENCE SECTORIELLE ===
+        if self.secteur_code and self.secteurs.get(self.secteur_code):
+            self._test_plausibilite_sectorielle()
+            self._test_ratios_desactives()
+            self._test_position_mediane_secteur()
 
         return {
             "rapport": self.rapport,
@@ -140,29 +188,42 @@ class Validator:
                       f"Nette={tn:,.0f}, Tresorerie={treso:,.0f}")
 
     def _test_dupont(self):
-        roe = self.ratios.get("rentabilite", {}).get("roe")
-        marge = self.ratios.get("rentabilite", {}).get("marge_nette")
-        rotation = self.ratios.get("gestion_activite", {}).get("rotation_actif")
-        # Levier Dupont = Total actif / Capitaux propres (et non Total dettes / CP)
-        ta = self.agregats.get("total_actif", 0)
-        cp = self.agregats.get("capitaux_propres", 0)
-        if None in (roe, marge, rotation) or cp == 0 or ta == 0:
-            self._add("WARN", "5. Verification Dupont", "Donnees insuffisantes")
+        """Identite Banque de France du partage de la valeur :
+
+        EBE = VA (+ subventions) - charges de personnel - impots et
+        taxes  =>  taux de marge = 100 - part personnel - part Etat.
+        Les petites divergences (transferts, subventions non prises en
+        compte) sont admises.
+        """
+        rent = self.ratios.get("rentabilite", {})
+        part = self.ratios.get("partage_valeur", {})
+        taux_marge = rent.get("taux_marge")
+        perso = part.get("repartition_personnel")
+        etat = part.get("repartition_etat")
+        if None in (taux_marge, perso, etat):
+            self._add("WARN", "5. Verification partage de la valeur",
+                      "Donnees insuffisantes")
             return
-        levier_dupont = ta / cp
-        # Formule : ROE = marge (deja en %) x rotation x levier
-        roe_calc = marge * rotation * levier_dupont
-        self._check_egalite("5. Verification Dupont", roe_calc, roe, 15.0,
-                            "Dupont", "ROE")
+        attendu = 100 - perso - etat
+        self._check_egalite("5. Verification partage de la valeur",
+                            attendu, taux_marge, 20.0,
+                            "100 - personnel - Etat", "taux de marge")
 
     def _test_bornes_ratios(self):
         bornes = {
-            "current_ratio": (0, 10), "quick_ratio": (0, 10), "cash_ratio": (0, 5),
-            "gearing": (0, 1000), "levier_financier": (0, 2000),
-            "marge_nette": (-100, 100), "marge_brute": (-100, 100),
-            "roe": (-100, 200), "roa": (-50, 100),
-            "dso": (0, 365), "dpo": (0, 365), "dsi": (0, 365),
-            "autonomie_financiere": (-100, 100), "ratio_solvabilite": (0, 1000),
+            "croissance_ca": (-100, 500), "croissance_va": (-100, 500),
+            "taux_valeur_ajoutee": (0, 100),
+            "taux_marge": (-100, 100),
+            "taux_excedent_brut_global": (-100, 100),
+            "rentabilite_financiere_capitaux_propres": (-100, 300),
+            "rentabilite_brute_capital_exploitation": (-100, 300),
+            "rendement_capital_exploitation": (0, 1000),
+            "dso": (0, 365), "dpo": (0, 365),
+            "poids_bfr_exploitation": (-365, 365),
+            "gearing": (0, 1000), "dette_nette_fonds_propres": (-1000, 1000),
+            "cout_apparent_endettement": (0, 50), "poids_interets_ebg": (0, 500),
+            "repartition_personnel": (0, 150), "repartition_etat": (0, 100),
+            "repartition_preteurs": (0, 100),
         }
         anomalies = 0
         for cat, ratio_dict in self.ratios.items():
@@ -333,3 +394,473 @@ class Validator:
         else:
             self._add("WARN", "18. Analyse verticale",
                       f"{anomalies} poste(s) depassent le total actif")
+
+    # ============================================================
+    # NIVEAU 2B : COHERENCE ECONOMIQUE
+    # ============================================================
+
+    def _val_ratio(self, nom):
+        """Valeur d'un ratio, quelle que soit sa categorie."""
+        for cat_dict in (self.ratios or {}).values():
+            if isinstance(cat_dict, dict) and nom in cat_dict:
+                return cat_dict.get(nom)
+        return None
+
+    def _test_ordre_marges(self):
+        """19. Enchainement economique : CA >= VA >= EBE (aux subventions pres)."""
+        ca = self.agregats.get("chiffre_affaires")
+        va = self.agregats.get("valeur_ajoutee")
+        ebe = self.agregats.get("ebe")
+        subv = (self.data.get("compte_resultat") or {}).get(
+            "subventions_exploitation") or 0
+        if not ca or not va or ebe is None:
+            self._add("WARN", "19. Enchainement CA, VA, EBE",
+                      "Donnees insuffisantes")
+            return
+        anomalies = []
+        if va > ca * 1.05:
+            anomalies.append(f"VA ({va:,.0f}) superieure au CA ({ca:,.0f})")
+        if ebe > va + subv + 0.02 * max(abs(va), 1):
+            anomalies.append(
+                f"EBE ({ebe:,.0f}) superieur a VA + subventions "
+                f"({va + subv:,.0f})")
+        if anomalies:
+            self._add("WARN", "19. Enchainement CA, VA, EBE",
+                      " ; ".join(anomalies),
+                      "Ordre attendu : CA >= VA >= EBE (aux subventions "
+                      "d'exploitation pres)")
+        else:
+            self._add("OK", "19. Enchainement CA, VA, EBE",
+                      "CA >= VA >= EBE : enchainement coherent")
+
+    def _test_ebitda_ca(self):
+        """L'EBITDA ne peut depasser le chiffre d'affaires."""
+        ca = self.agregats.get("chiffre_affaires", 0)
+        eb = self.agregats.get("ebitda", 0)
+        if not ca or eb == 0:
+            self._add("WARN", "20. EBITDA vs CA", "Donnees insuffisantes")
+            return
+        marge = eb / ca * 100
+        if marge > 100:
+            self._add("ERREUR", "20. EBITDA vs CA",
+                      f"EBITDA ({eb:,.0f}) superieur au CA ({ca:,.0f}) : "
+                      "incoherence de perimetre",
+                      "Verifier que l'EBITDA et le CA couvrent le meme perimetre")
+        elif marge > 60:
+            self._add("WARN", "20. EBITDA vs CA",
+                      f"Marge EBITDA de {marge:.0f}% : atypique, verifier "
+                      "le perimetre des montants extraits")
+        else:
+            self._add("OK", "20. EBITDA vs CA",
+                      f"Marge EBITDA de {marge:.1f}% (plausible)")
+
+    def _test_rn_ebitda(self):
+        """Un resultat net tres superieur a l'EBITDA est suspect."""
+        rn = self.agregats.get("resultat_net", 0)
+        eb = self.agregats.get("ebitda", 0)
+        if eb == 0:
+            self._add("WARN", "21. Resultat net vs EBITDA", "Donnees insuffisantes")
+            return
+        if eb > 0 and rn > eb * 1.3:
+            self._add("WARN", "21. Resultat net vs EBITDA",
+                      f"Resultat net ({rn:,.0f}) tres superieur a l'EBITDA "
+                      f"({eb:,.0f}) : verifier les produits exceptionnels "
+                      "ou l'affectation du resultat")
+        else:
+            self._add("OK", "21. Resultat net vs EBITDA",
+                      "Resultat net coherent avec l'EBITDA")
+
+    def _test_va_ca(self):
+        """La valeur ajoutee doit rester dans un rapport plausible au CA."""
+        va = self.agregats.get("valeur_ajoutee", 0)
+        ca = self.agregats.get("chiffre_affaires", 0)
+        if not ca or va == 0:
+            self._add("WARN", "22. VA vs CA", "Donnees insuffisantes")
+            return
+        taux = va / ca * 100
+        if taux > 100:
+            self._add("ERREUR", "22. VA vs CA",
+                      f"VA ({va:,.0f}) superieure au CA ({ca:,.0f}) : "
+                      "incoherence de perimetre")
+        elif taux < 5:
+            self._add("WARN", "22. VA vs CA",
+                      f"VA = {taux:.1f}% du CA : tres faible, verifier "
+                      "les consommations externes")
+        else:
+            self._add("OK", "22. VA vs CA",
+                      f"VA = {taux:.0f}% du CA (plausible)")
+
+    # ============================================================
+    # NIVEAU 2C : CONTROLES COMPLEMENTAIRES
+    # ============================================================
+
+    def _test_equilibre_bilan_n1(self):
+        """L'exercice precedent doit aussi etre equilibre."""
+        if not self.data_n1:
+            self._add("WARN", "23. Equilibre bilan N-1",
+                      "Exercice N-1 non fourni")
+            return
+        ta = (self.data_n1.get("actif") or {}).get("total_actif")
+        tp = (self.data_n1.get("passif") or {}).get("total_passif")
+        if not ta or not tp:
+            self._add("WARN", "23. Equilibre bilan N-1",
+                      "Totaux N-1 non extraits")
+            return
+        self._check_egalite("23. Equilibre bilan N-1", ta, tp, 1.0,
+                            "Actif N-1", "Passif N-1")
+
+    def _test_structure_actif(self):
+        """Actif immobilise + actif circulant = total actif."""
+        a = self.data.get("actif") or {}
+        ta = a.get("total_actif") or self.agregats.get("total_actif")
+        circulant = a.get("total_actif_circulant")
+        ai = self.agregats.get("actif_immobilise")
+        if not ta or not circulant or ai is None:
+            self._add("WARN", "24. Structure de l'actif",
+                      "Donnees insuffisantes")
+            return
+        self._check_egalite("24. Structure de l'actif", ai + circulant, ta,
+                            5.0, "Immo+Circulant", "Total actif")
+
+    def _test_detail_dettes(self):
+        """Somme des dettes detaillees = total des dettes.
+
+        Inclut les avances et acomptes recus et les produits constates
+        d'avance : dans la presentation fiscale comme classique, ils
+        font partie du bloc des dettes.
+        """
+        p = self.data.get("passif") or {}
+        composantes = ("dettes_financieres", "emprunts_obligataires",
+                       "emprunts_dettes_financieres_divers",
+                       "dettes_fournisseurs", "dettes_fiscales_sociales",
+                       "dettes_immobilisations", "autres_dettes",
+                       "avances_acomptes_recus", "produits_constates_avance")
+        somme = sum(p.get(c) or 0 for c in composantes)
+        total = p.get("total_dettes") or self.agregats.get("total_dettes")
+        if not somme or not total:
+            self._add("WARN", "25. Detail des dettes", "Donnees insuffisantes")
+            return
+        self._check_egalite("25. Detail des dettes", somme, total, 5.0,
+                            "Somme detaillee", "Total dettes")
+
+    def _test_detail_capitaux_propres(self):
+        """Somme des composantes des capitaux propres = total CP."""
+        p = self.data.get("passif") or {}
+        composantes = ("capital_social", "primes_emission", "reserve_legale",
+                       "reserves_statutaires", "reserves_reglementees",
+                       "autres_reserves", "report_a_nouveau",
+                       "resultat_exercice", "subventions_investissement",
+                       "provisions_reglementees")
+        somme = sum(p.get(c) or 0 for c in composantes)
+        total = p.get("total_capitaux_propres") \
+            or self.agregats.get("capitaux_propres")
+        if not somme or not total:
+            self._add("WARN", "26. Detail des capitaux propres",
+                      "Donnees insuffisantes")
+            return
+        self._check_egalite("26. Detail des capitaux propres", somme, total,
+                            5.0, "Somme detaillee", "Total capitaux propres")
+
+    def _test_resultat_courant(self):
+        """Resultat courant = resultat d'exploitation + resultat financier."""
+        cr = self.data.get("compte_resultat") or {}
+        rex = cr.get("resultat_exploitation")
+        rf = cr.get("resultat_financier")
+        rc = cr.get("resultat_courant")
+        if None in (rex, rf, rc):
+            self._add("WARN", "27. Resultat courant = REX + RF",
+                      "Donnees insuffisantes")
+            return
+        self._check_egalite("27. Resultat courant = REX + RF", rex + rf, rc,
+                            5.0, "REX+RF", "Resultat courant")
+
+    def _test_resultat_net_chaine(self):
+        """Resultat net = courant + exceptionnel - impots - participation."""
+        cr = self.data.get("compte_resultat") or {}
+        pieces = ("resultat_courant", "resultat_exceptionnel",
+                  "impots_benefices", "participation_salaries")
+        if any(cr.get(c) is None for c in pieces):
+            self._add("WARN", "28. Chaine du resultat net",
+                      "Donnees insuffisantes")
+            return
+        attendu = (cr["resultat_courant"] + cr["resultat_exceptionnel"]
+                   - cr["impots_benefices"] - cr["participation_salaries"])
+        self._check_egalite("28. Chaine du resultat net", attendu,
+                            self.agregats.get("resultat_net"), 5.0,
+                            "Courant+Excep-Impots", "Resultat net")
+
+    def _test_signes_bilan(self):
+        """Stocks, creances et tresorerie negatifs : montants aberrants."""
+        a = self.data.get("actif") or {}
+        negatifs = []
+        for nom in ("total_stocks", "total_creances", "disponibilites",
+                    "valeurs_mobilieres_placement", "immobilisations_incorporelles"):
+            v = a.get(nom)
+            if v is not None and v < 0:
+                negatifs.append(nom.replace("_", " "))
+        if not negatifs:
+            self._add("OK", "29. Signes du bilan",
+                      "Aucun poste d'actif negatif")
+        else:
+            self._add("ERREUR", "29. Signes du bilan",
+                      f"{len(negatifs)} poste(s) d'actif negatif(s) : "
+                      + ", ".join(negatifs),
+                      "Un poste d'actif negatif est generalement un probleme "
+                      "d'extraction (signe ou parenthese mal lu) ou une "
+                      "provision non identifiee.")
+
+    def _test_continuite_n_n1(self):
+        """Variation du total actif entre N-1 et N : mutation de perimetre ?"""
+        if not self.data_n1:
+            self._add("WARN", "30. Continuite N vs N-1",
+                      "Exercice N-1 non fourni")
+            return
+        ta_n = self.agregats.get("total_actif")
+        ta_n1 = (self.data_n1.get("actif") or {}).get("total_actif")
+        if not ta_n or not ta_n1:
+            self._add("WARN", "30. Continuite N vs N-1", "Totaux insuffisants")
+            return
+        variation = (ta_n - ta_n1) / abs(ta_n1) * 100
+        if abs(variation) > 200:
+            self._add("WARN", "30. Continuite N vs N-1",
+                      f"Total actif : {variation:+.0f} % d'une annee "
+                      "sur l'autre",
+                      "Variation majeure : verifier le perimetre, une "
+                      "fusion/restructuration ou une erreur d'exercice.")
+        else:
+            self._add("OK", "30. Continuite N vs N-1",
+                      f"Variation du total actif : {variation:+.0f} % "
+                      "(plausible)")
+
+    def _test_dettes_financieres_incluses(self):
+        """Les dettes financieres font partie du total des dettes."""
+        df = self.agregats.get("dettes_financieres")
+        td = self.agregats.get("total_dettes")
+        if not df or not td:
+            self._add("WARN", "31. Dettes financieres incluses",
+                      "Donnees insuffisantes")
+            return
+        if df > td * 1.02:
+            self._add("ERREUR", "31. Dettes financieres incluses",
+                      f"Dettes financieres ({df:,.0f}) superieures au total "
+                      f"des dettes ({td:,.0f})",
+                      "Le total des dettes semble incomplet ou les dettes "
+                      "financieres sont double-comptees.")
+        else:
+            self._add("OK", "31. Dettes financieres incluses",
+                      f"Dettes financieres = {df / td * 100:.0f} % du "
+                      "total des dettes")
+
+    def _test_capital_vs_cp(self):
+        """Capitaux propres inferieurs au capital social : pertes accumulees."""
+        p = self.data.get("passif") or {}
+        capital = p.get("capital_social")
+        cp = self.agregats.get("capitaux_propres")
+        if not capital or cp is None:
+            self._add("WARN", "32. Capital vs capitaux propres",
+                      "Donnees insuffisantes")
+            return
+        if cp < capital * 0.5:
+            self._add("WARN", "32. Capital vs capitaux propres",
+                      f"Capitaux propres ({cp:,.0f}) tres inferieurs au "
+                      f"capital social ({capital:,.0f})",
+                      "Des pertes accumulees ou une distribution "
+                      "exceptionnelle ont entame la situation nette : "
+                      "point de vigilance patrimonial.")
+        else:
+            self._add("OK", "32. Capital vs capitaux propres",
+                      "Situation nette superieure a la moitie du capital")
+
+    # ============================================================
+    # NIVEAU 2D : CONTROLES D'ENRICHISSEMENT (33-36)
+    # ============================================================
+    def _test_charges_sociales_salaires(self):
+        """35. Charges sociales / salaires : structure usuelle 25-65 %."""
+        salaires = self.agregats.get("salaires_traitements")
+        charges = self.agregats.get("charges_sociales")
+        if not salaires or salaires <= 0 or charges is None:
+            self._add("WARN", "33. Charges sociales / salaires",
+                      "Donnees manquantes")
+            return
+        taux = charges / salaires * 100
+        if 25 <= taux <= 65:
+            self._add("OK", "33. Charges sociales / salaires",
+                      f"Structure usuelle ({taux:.0f} % des salaires)")
+        else:
+            self._add("WARN", "33. Charges sociales / salaires",
+                      f"Structure atypique ({taux:.0f} % des salaires) - "
+                      "verifier la ventilation salaires / charges sociales")
+
+    def _test_dotations_immobilisations(self):
+        """36. Taux d'amortissement apparent : dotations / actif immobilise."""
+        dotations = self.agregats.get("dotations")
+        immo = self.agregats.get("actif_immobilise")
+        if not immo or immo <= 0 or dotations is None:
+            self._add("WARN", "34. Dotations / actif immobilise",
+                      "Donnees manquantes")
+            return
+        taux = dotations / immo * 100
+        if 0.5 <= taux <= 40:
+            self._add("OK", "34. Dotations / actif immobilise",
+                      f"Taux d'amortissement plausible ({taux:.0f} %)")
+        else:
+            self._add("WARN", "34. Dotations / actif immobilise",
+                      f"Taux d'amortissement atypique ({taux:.0f} %) - "
+                      "sous-valorisation des dotations ou actif tres recent")
+
+    def _test_fdr_positif(self):
+        """37. Fonds de roulement : les ressources stables couvrent-elles
+        l'actif immobilise ?"""
+        fdr = self.agregats.get("fdr")
+        if fdr is None:
+            self._add("WARN", "35. Fonds de roulement", "Donnees manquantes")
+            return
+        if fdr >= 0:
+            self._add("OK", "35. Fonds de roulement",
+                      f"Ressources stables suffisantes (FDR = {fdr:,.0f})")
+        else:
+            self._add("WARN", "35. Fonds de roulement",
+                      f"FDR negatif ({fdr:,.0f}) - l'actif immobilise n'est "
+                      "pas couvert par les ressources stables")
+
+    def _test_couverture_interets_ebe(self):
+        """39. L'EBE couvre-t-il la charge d'interets (au moins 3 fois) ?"""
+        ebe = self.agregats.get("ebe")
+        interets = self.agregats.get("interets_charges_assimilees")
+        if ebe is None or not interets:
+            self._add("WARN", "36. Couverture des interets par l'EBE",
+                      "Donnees manquantes")
+            return
+        couverture = ebe / interets
+        if couverture >= 3:
+            self._add("OK", "36. Couverture des interets par l'EBE",
+                      f"Charge financiere bien couverte ({couverture:.1f}x)")
+        elif couverture >= 1:
+            self._add("WARN", "36. Couverture des interets par l'EBE",
+                      f"Couverture juste ({couverture:.1f}x) - la marge "
+                      "d'exploitation absorbe difficilement les interets")
+        else:
+            self._add("ERREUR", "36. Couverture des interets par l'EBE",
+                      f"Interets non couverts par l'EBE ({couverture:.1f}x)")
+
+    def _test_position_mediane_secteur(self):
+        """38. Position globale vs mediane du secteur : combien de ratios
+        font mieux que la moitie des entreprises du secteur ?"""
+        refs = (self.secteurs.get(self.secteur_code) or {}).get("ratios") or {}
+        au_dessus, total = 0, 0
+        for cat, ratio_dict in self.ratios.items():
+            for nom, val in ratio_dict.items():
+                med = (refs.get(nom) or {}).get("mediane")
+                if val is None or med is None:
+                    continue
+                total += 1
+                # sens de lecture du ratio (baisse_bien : plus bas = mieux)
+                baisse = nom in ("dso", "dpo", "poids_bfr_exploitation",
+                                 "gearing", "dette_nette_fonds_propres",
+                                 "cout_apparent_endettement",
+                                 "poids_interets_ebg", "repartition_personnel",
+                                 "repartition_etat", "repartition_preteurs")
+                meilleur = val <= med if baisse else val >= med
+                if meilleur:
+                    au_dessus += 1
+        if not total:
+            self._add("WARN", "39. Position vs mediane du secteur",
+                      "Aucun ratio comparable au secteur")
+            return
+        part = au_dessus / total * 100
+        if part >= 50:
+            self._add("OK", "39. Position vs mediane du secteur",
+                      f"{au_dessus} ratios sur {total} font mieux que la "
+                      f"mediane du secteur ({part:.0f} %)")
+        else:
+            self._add("WARN", "39. Position vs mediane du secteur",
+                      f"Seuls {au_dessus} ratios sur {total} font mieux que "
+                      f"la mediane du secteur ({part:.0f} %)")
+
+    # ============================================================
+    # NIVEAU 3 : COHERENCE SECTORIELLE
+    # ============================================================
+
+    def _test_plausibilite_sectorielle(self):
+        """Identifie, ratio par ratio, les valeurs incompatibles avec le secteur.
+
+        Une valeur situee au-dela de 2 ecarts interquartiles du domaine
+        sectoriel est signalee en vigilance ; au-dela de 4, en incoherence.
+        Chaque ratio en dehors du domaine genere une entree dediee :
+        l'incoherence est nommee, chiffree et comparee au secteur.
+        """
+        info = self.secteurs.get(self.secteur_code) or {}
+        label = info.get("label", self.secteur_code)
+        refs = info.get("ratios") or {}
+        nom_test = f"37. Plausibilite sectorielle ({label})"
+        anomalies = 0
+
+        for nom, ref in refs.items():
+            val = self._val_ratio(nom)
+            if val is None:
+                continue
+            q1, med, q3 = ref.get("q1"), ref.get("mediane"), ref.get("q3")
+            if q1 is None or q3 is None:
+                continue
+            iqr = q3 - q1
+            if iqr <= 0:
+                continue
+            bas, haut = q1 - 2 * iqr, q3 + 2 * iqr
+            if bas <= val <= haut:
+                continue
+            anomalies += 1
+            grave = val < q1 - 4 * iqr or val > q3 + 4 * iqr
+            niveau = "ERREUR" if grave else "WARN"
+            self._add(niveau, nom_test,
+                      f"{nom.replace('_', ' ')} = {val:,.2f} : hors du "
+                      f"domaine sectoriel [{q1:,.2f} ; {q3:,.2f}] "
+                      f"(mediane {med:,.2f})",
+                      f"Domaine plausible pour le secteur {label} : "
+                      f"[{bas:,.2f} ; {haut:,.2f}] - Q1={q1:,.2f}, "
+                      f"mediane={med:,.2f}, Q3={q3:,.2f}. Verifier la "
+                      f"valeur extraite, le perimetre ou la pertinence du "
+                      f"secteur detecte.")
+
+        if anomalies == 0:
+            self._add("OK", nom_test,
+                      "Toutes les valeurs situees dans le domaine plausible "
+                      f"du secteur {label}")
+
+    def _test_ratios_desactives(self):
+        """Signale les valeurs significatives sur des ratios non pertinents.
+
+        Certains ratios sont desactives par secteur (ex: rotation des
+        stocks pour les services) : une valeur elevee sur un de ces
+        ratios indique soit une erreur d'extraction, soit un mauvais
+        secteur detecte.
+        """
+        info = self.secteurs.get(self.secteur_code) or {}
+        label = info.get("label", self.secteur_code)
+        desactives = info.get("ratios_desactives") or []
+        nom_test = f"38. Ratios non pertinents ({label})"
+        seuils = {"dpo": 5, "dso": 5}
+        anomalies = 0
+
+        for nom in desactives:
+            val = self._val_ratio(nom)
+            if val is None:
+                continue
+            seuil = seuils.get(nom, 0.5)
+            if abs(val) > seuil:
+                anomalies += 1
+                self._add("WARN", nom_test,
+                          f"{nom.replace('_', ' ')} = {val:,.2f} alors que "
+                          f"ce ratio est desactive pour le secteur {label}",
+                          "Ce ratio est normalement non pertinent pour ce "
+                          "secteur : verifier la detection du secteur ou "
+                          "les donnees extraites.")
+
+        if anomalies == 0:
+            if desactives:
+                self._add("OK", nom_test,
+                          f"Aucune valeur significative sur les "
+                          f"{len(desactives)} ratio(s) non pertinents du "
+                          f"secteur {label}")
+            else:
+                self._add("OK", nom_test,
+                          f"Aucun ratio desactive pour le secteur {label}")

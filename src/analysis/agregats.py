@@ -62,11 +62,13 @@ class Agregats:
         self.resultats["consommations_tiers"] = consommations
 
         # Valeur ajoutee (VA)
-        self.resultats["valeur_ajoutee"] = (
-            self.resultats["marge_commerciale"]
-            + self.resultats["production_exercice"]
-            - consommations
-        )
+        # Base SIG = marge commerciale + production ; si le compte de
+        # resultat ne fournit que le chiffre d'affaires global (pas de
+        # ventilation ventes/production), la VA part de ce CA.
+        base_sig = self.resultats["marge_commerciale"] + self.resultats["production_exercice"]
+        if base_sig == 0 and ca > 0:
+            base_sig = ca
+        self.resultats["valeur_ajoutee"] = base_sig - consommations
 
         # EBE (Excedent Brut d'Exploitation)
         subventions = self._get("cr", "subventions_exploitation")
@@ -115,13 +117,23 @@ class Agregats:
             "total_charges_financieres",
             "impots_taxes", "subventions_exploitation",
             "ventes_marchandises", "production_vendue_services",
-            "production_vendue_biens",
+            "production_vendue_biens", "production_stockee",
+            "production_immobilisee", "autres_achats_charges_externes",
         ]:
             self.resultats[k] = self._get("cr", k)
 
         # Achats agreges (utilises par marge_brute + DPO + DSI)
         self.resultats["achats"] = (
             self.resultats["achats_matieres"] + self.resultats["achats_marchandises"]
+        )
+        # Achats CONSOMMES (biens + charges externes) : denominateur des
+        # durees de rotation (DPO, DSI, CCC). Une societe de services
+        # n'achete presque pas de biens : ses dettes fournisseurs
+        # proviennent des charges externes (sous-traitance, prestations).
+        # Sans elles, le DPO explose (denominateur denombrable en
+        # milliers d'euros) et le score est fausse.
+        self.resultats["achats_consommes"] = (
+            self.resultats["achats"] + autres_achats
         )
 
     # ============================================================
@@ -152,8 +164,12 @@ class Agregats:
 
         self.resultats["capitaux_propres"] = cp
 
-        # Dettes financieres
-        dettes_fin = self._get("passif", "dettes_financieres")
+        # Dettes financieres : somme des composantes (emprunts obligataires,
+        # etablissements de credit, emprunts et dettes financieres divers) ;
+        # le total explicite sert de repli
+        dettes_fin = (self._get("passif", "dettes_financieres")
+                      + self._get("passif", "emprunts_obligataires")
+                      + self._get("passif", "emprunts_dettes_financieres_divers"))
         if dettes_fin == 0:
             dettes_fin = self._get("passif", "total_dettes_financieres")
         self.resultats["dettes_financieres"] = dettes_fin
@@ -186,12 +202,42 @@ class Agregats:
         # Ressources stables (approximation : capitaux propres + dettes financieres)
         self.resultats["ressources_stables"] = cp + dettes_fin
 
-        # Totaux du bilan (recuperes directement du parser)
+        # Totaux du bilan (recuperes directement du parser). La liasse
+        # fiscale n'a pas de ligne "Total stocks" ni "Total creances" :
+        # a defaut de total explicite, sommer les composantes.
         self.resultats["total_actif"] = self._get("actif", "total_actif")
         self.resultats["total_passif"] = self._get("passif", "total_passif")
         self.resultats["total_stocks"] = self._get("actif", "total_stocks")
+        if self.resultats["total_stocks"] == 0:
+            self.resultats["total_stocks"] = (
+                self._get("actif", "matieres_premieres")
+                + self._get("actif", "en_cours_production_biens")
+                + self._get("actif", "en_cours_production_services")
+                + self._get("actif", "produits_intermediaires")
+                + self._get("actif", "stocks_marchandises")
+                + self._get("actif", "avances_commandes")
+            )
         self.resultats["total_creances"] = self._get("actif", "total_creances")
+        if self.resultats["total_creances"] == 0:
+            self.resultats["total_creances"] = (
+                self._get("actif", "creances_clients")
+                + self._get("actif", "autres_creances")
+                + self._get("actif", "creances_rattachees_participations")
+            )
         self.resultats["dettes_fiscales_sociales"] = self._get("passif", "dettes_fiscales_sociales")
+        # Postes bruts du bilan requis par les formules Banque de
+        # France (delais de reglement, avances nettees). Les liasses
+        # simplifiees ne detaille pas les creances clients : repli
+        # sur le total des creances (approximation documentee).
+        creances_clients = self._get("actif", "creances_clients")
+        if creances_clients == 0:
+            creances_clients = self._get("actif", "total_creances")
+        self.resultats["creances_clients"] = creances_clients
+        self.resultats["avances_commandes"] = self._get("actif", "avances_commandes")
+        self.resultats["avances_acomptes_recus"] = self._get("passif", "avances_acomptes_recus")
+        self.resultats["disponibilites"] = self._get("actif", "disponibilites")
+        self.resultats["valeurs_mobilieres_placement"] = self._get(
+            "actif", "valeurs_mobilieres_placement")
         self.resultats["actif_circulant"] = (
             self.resultats["total_stocks"]
             + self.resultats["total_creances"]
@@ -206,8 +252,8 @@ class Agregats:
         )
 
         # BFR
-        stocks = self._get("actif", "total_stocks")
-        creances = self._get("actif", "total_creances")
+        stocks = self.resultats["total_stocks"]
+        creances = self.resultats["total_creances"]
         df = self.resultats["dettes_fournisseurs"]
         self.resultats["bfr"] = stocks + creances - df
 
