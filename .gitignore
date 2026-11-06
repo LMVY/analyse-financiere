@@ -3,3 +3,4 @@ data/cache_mistral/
 data/raw/
 __pycache__/
 *.pyc
+data/config_user.yaml
