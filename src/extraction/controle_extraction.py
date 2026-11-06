@@ -151,19 +151,16 @@ def scorer_extraction(data, parser_utilise: str = "") -> ResultatValidation:
         r.problemes.append(f"Bilan incomplet (actif={r.nb_actif}, passif={r.nb_passif})")
 
     desequilibre = False
-    non_verifiable = False
     ecart, methode = _calcul_equilibre(actif, passif)
     r.equilibre_ecart_pct, r.equilibre_methode = ecart, methode
 
     if ecart is None:
         r.problemes.append("Equilibre non verifiable (totaux introuvables)")
-        non_verifiable = True
     elif methode == "somme_postes":
         # Somme approximative : ne pas conclure à un desequilibre reel
         r.avertissements.append(
             f"Equilibre estime par somme ({ecart:.1f}%) - non fiable"
         )
-        non_verifiable = True
     elif ecart < ECART_OK_PCT:
         r.score += POINTS_EQUILIBRE_OK
     elif ecart < ECART_TOLERE_PCT:

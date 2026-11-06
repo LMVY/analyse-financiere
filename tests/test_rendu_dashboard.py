@@ -59,23 +59,22 @@ st.session_state["files_sig"] = "test"
 st.session_state["controles"] = []
 st.session_state.pop("pdf_bytes", None)
 
-code = open((Path(__file__).parent.parent / "dashboard" / "_analyse_body.py").as_posix(),
-            encoding="utf-8").read()
+from dashboard import page_analyse, page_parametrage
+
 try:
-    exec(compile(code, "_analyse_body.py", "exec"))
+    page_analyse.afficher()
     print("RENDU COMPLET DE LA PAGE ANALYSE : OK, aucune exception")
 except Exception as e:
     import traceback
     traceback.print_exc()
     print("ECHEC RENDU :", type(e).__name__, e)
+    sys.exit(1)
 
 # ============================================================
 # Page Parametrage : rendu sans exception (mode autonome)
 # ============================================================
-code_admin = open((Path(__file__).parent.parent / "dashboard" / "_admin_body.py").as_posix(),
-                  encoding="utf-8").read()
 try:
-    exec(compile(code_admin, "_admin_body.py", "exec"))
+    page_parametrage.afficher()
     print("RENDU COMPLET DE LA PAGE PARAMETRAGE : OK, aucune exception")
 except Exception as e:
     import traceback
@@ -91,10 +90,7 @@ except Exception as e:
 st.session_state.pop("result", None)
 st.session_state.pop("pdf_cache", None)
 try:
-    code_reprise = open((Path(__file__).parent.parent / "dashboard"
-                         / "_analyse_body.py").as_posix(),
-                        encoding="utf-8").read()
-    exec(compile(code_reprise, "_analyse_body.py", "exec"))
+    page_analyse.afficher()
     print("RENDU SANS 'result' PRE-CALCULE (garde en-tete) : OK, aucune exception")
 except Exception as e:
     import traceback

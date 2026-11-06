@@ -37,7 +37,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
@@ -58,7 +58,7 @@ from src.reporting.charts_pdf import (
     fig_vers_image,
 )
 from src.visualization.colors import (
-    THEME, get_score_gradient, get_score_label, get_score_verdict,
+    THEME, get_score_gradient, get_score_verdict,
 )
 
 INDICATEURS_CLES = [
@@ -492,12 +492,6 @@ def generate_pdf_report(
         fontName=FONT_BOLD, fontSize=10.5, leading=14,
         textColor=_hex(THEME["ink"]),
         spaceAfter=0, spaceBefore=0,
-    )
-    h3_style = ParagraphStyle(
-        "H3", parent=styles["Heading3"],
-        fontName=FONT_BOLD, fontSize=10, leading=14,
-        textColor=_hex(THEME["ink"]),
-        spaceAfter=4, spaceBefore=10,
     )
     body_style = ParagraphStyle(
         "Body", parent=normal, fontName=FONT,

@@ -12,7 +12,7 @@ Regles de design (source unique : src.visualization.colors) :
 import plotly.graph_objects as go
 import pandas as pd
 
-from src.visualization.colors import THEME, CHART, hex_rgba
+from src.visualization.colors import THEME, CHART
 
 FONT = "'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif"
 

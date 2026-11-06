@@ -175,7 +175,7 @@ class Validator:
         # Si le BFR est superieur au FDR, l'ecart est structurel (normal)
         if bfr > fdr:
             self._add("OK", "4. Coherence tresorerie",
-                      f"BFR > FDR : ecart structurel normal",
+                      "BFR > FDR : ecart structurel normal",
                       f"FDR={fdr:,.0f}, BFR={bfr:,.0f}, Treso. nette={tn:,.0f}")
             return
         ecart_pct = abs(tn - treso) / abs(treso) * 100

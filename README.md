@@ -76,9 +76,11 @@ config/
   secteurs_config.yaml    # 8 secteurs : quartiles par ratio + ratios desactives
   profils.yaml            # profils d'analyse (court/moyen/long terme)
 dashboard/
-  app.py                  # launcher (onglets Analyse / Paramétrage)
-  _analyse_body.py        # analyse : import, scores, graphiques
-  _admin_body.py          # paramétrage : configuration (accessible a tous)
+  app.py                  # launcher : portail mot de passe, onglets
+  styles.py               # CSS unique (une fonction d'injection par page)
+  composants.py           # composants UI : KPI, anneaux, graphiques, tableaux
+  page_analyse.py         # onglet Analyse : import, extraction, score, resultats
+  page_parametrage.py     # onglet Paramétrage : profils, ratios, secteurs
 src/
   extraction/
     service.py             # service unifie : un appel -> Extraction (data, meta, source)

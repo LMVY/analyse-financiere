@@ -16,7 +16,7 @@ Regle editoriale : chaque affirmation est portee par un chiffre, les
 phrases restent courtes, aucun remplissage.
 """
 from src.reporting.glossaire import (
-    CAT_DESCRIPTIONS, label_categorie, label_ratio, get_score_label,
+    label_categorie, label_ratio, get_score_label,
 )
 from src.visualization.colors import get_score_verdict
 
@@ -235,8 +235,6 @@ def faits_structures(result, alertes, medianes_secteur=None):
     reposent sur les ratios notes ; les alertes reprennent les
     messages du detecteur, telles quelles.
     """
-    from src.visualization.colors import THEME
-
     details = result.get("details") or {}
     cats = {k: v for k, v in result.get("scores_categories", {}).items()
             if v is not None}
@@ -287,7 +285,6 @@ def faits_structures(result, alertes, medianes_secteur=None):
 def resume_categorie(cat, sc, details, medianes_secteur=None):
     """Lecture factuelle d'une categorie : niveau + extreme + ecart type."""
     details = details or {}
-    medianes = medianes_secteur or {}
     best, worst = ratios_extremes(details, cat)
     niveau = get_score_label(sc)
 

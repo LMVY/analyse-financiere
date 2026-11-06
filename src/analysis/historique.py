@@ -104,3 +104,35 @@ def calculer_historique(ratios_par_annee: dict) -> dict:
         }
 
     return result
+
+
+# ============================================================
+# Exercices : fusion et decoupage (utilise par le dashboard)
+# ============================================================
+def calculer_croissance(v_n, v_n1):
+    """Taux de croissance (%) de v_n1 -> v_n ; None si impossible."""
+    if v_n1 and v_n1 != 0 and v_n is not None:
+        return (v_n - v_n1) / abs(v_n1) * 100
+    return None
+
+
+def scinder_exercices(data: dict, sections=("actif", "passif", "compte_resultat")) -> tuple:
+    """Data standard Document AI (poste + poste_n1) -> (N, N-1)."""
+    n, n1 = {}, {}
+    for sec in sections:
+        n[sec] = {k: v for k, v in data.get(sec, {}).items() if not k.endswith("_n1")}
+        n1[sec] = {k[:-3]: v for k, v in data.get(sec, {}).items() if k.endswith("_n1")}
+    return n, n1
+
+
+def fusionner_exercice(par_annee: dict, cle, data: dict,
+                       sections=("actif", "passif", "compte_resultat")):
+    """Ajoute un exercice ; complete les postes manquants s'il existe deja."""
+    if cle not in par_annee:
+        par_annee[cle] = data
+        return True
+    for sec in sections:
+        for k, v in data.get(sec, {}).items():
+            par_annee[cle].setdefault(sec, {})
+            par_annee[cle][sec].setdefault(k, v)
+    return False
