@@ -7,3 +7,5 @@ python-dotenv
 reportlab
 openpyxl
 mistralai
+matplotlib
+pillow
