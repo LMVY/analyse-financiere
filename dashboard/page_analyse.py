@@ -161,173 +161,175 @@ def _score_resultat(profil_courant="moyen_terme"):
 
 
 # ============================================================
-# 4. EN-TETE
+# 4. EN-TETE (rendu a chaque affichage)
 # ============================================================
-h_left, h_opts, h_pdf = st.columns([5.2, 1.3, 2.5], vertical_alignment="center")
-with h_left:
-    st.markdown("<h1>FinView</h1>", unsafe_allow_html=True)
-    if st.session_state.analyse_faite:
-        nom = st.session_state.get("nom_entreprise", "")
-        secteur_label = st.session_state.get("secteur_auto_label")
-        meta = nom
-        if secteur_label:
-            meta += f" &middot; Secteur : <b>{secteur_label}</b>"
-        st.markdown(f"<div class='sub'>{meta}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='sub'>Deposez les documents d'au moins trois exercices complets (huit maximum) pour obtenir un score detaille.</div>",
-                    unsafe_allow_html=True)
-
-with h_opts:
-    with st.popover("Options", use_container_width=True):
-        try:
-            secteurs = load_secteurs()
-            opts = ["Detection automatique"] + [i["label"] for i in secteurs.values()]
-        except Exception:
-            opts = ["Detection automatique"]
-        st.selectbox("Secteur", opts, key="secteur_sel")
-        st.text_input("Code NAF / APE", placeholder="Ex : 41.20A", key="naf_input")
-        if st.session_state.get("naf_auto"):
-            st.caption(f"Détecté dans le document : {st.session_state.naf_auto}"
-                       + (f" ({st.session_state.secteur_auto_label})"
-                          if st.session_state.get("secteur_auto_label") else ""))
+def _entete():
+    """Bandeau titre + Options + bouton PDF : au-dessus du contenu."""
+    h_left, h_opts, h_pdf = st.columns([5.2, 1.3, 2.5], vertical_alignment="center")
+    with h_left:
+        st.markdown("<h1>FinView</h1>", unsafe_allow_html=True)
         if st.session_state.analyse_faite:
+            nom = st.session_state.get("nom_entreprise", "")
+            secteur_label = st.session_state.get("secteur_auto_label")
+            meta = nom
+            if secteur_label:
+                meta += f" &middot; Secteur : <b>{secteur_label}</b>"
+            st.markdown(f"<div class='sub'>{meta}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='sub'>Deposez les documents d'au moins trois exercices complets (huit maximum) pour obtenir un score detaille.</div>",
+                        unsafe_allow_html=True)
+
+    with h_opts:
+        with st.popover("Options", use_container_width=True):
             try:
-                keys = list(PROFILS_EFFECTIFS.keys())
-                idx = keys.index("moyen_terme") if "moyen_terme" in keys else 0
-                profil = st.selectbox("Profil d'analyse", keys, index=idx,
-                                      format_func=lambda x: PROFILS_EFFECTIFS[x].get("label", x))
+                secteurs = load_secteurs()
+                opts = ["Detection automatique"] + [i["label"] for i in secteurs.values()]
             except Exception:
-                profil = "moyen_terme"
-            st.selectbox("Base du score",
-                         list(LABELS_MODES.values()),
-                         index=0, key="score_base_sel",
-                         help="Dernière année + tendance : le score porte sur "
-                              "l'exercice N, ajusté par la trajectoire des ratios "
-                              "(N comparé à la moyenne des exercices, ±5 pts par "
-                              "catégorie). Moyenne des exercices : le score porte "
-                              "sur la valeur moyenne de chaque ratio.")
+                opts = ["Detection automatique"]
+            st.selectbox("Secteur", opts, key="secteur_sel")
+            st.text_input("Code NAF / APE", placeholder="Ex : 41.20A", key="naf_input")
+            if st.session_state.get("naf_auto"):
+                st.caption(f"Détecté dans le document : {st.session_state.naf_auto}"
+                           + (f" ({st.session_state.secteur_auto_label})"
+                              if st.session_state.get("secteur_auto_label") else ""))
+            if st.session_state.analyse_faite:
+                try:
+                    keys = list(PROFILS_EFFECTIFS.keys())
+                    idx = keys.index("moyen_terme") if "moyen_terme" in keys else 0
+                    profil = st.selectbox("Profil d'analyse", keys, index=idx,
+                                          format_func=lambda x: PROFILS_EFFECTIFS[x].get("label", x))
+                except Exception:
+                    profil = "moyen_terme"
+                st.selectbox("Base du score",
+                             list(LABELS_MODES.values()),
+                             index=0, key="score_base_sel",
+                             help="Dernière année + tendance : le score porte sur "
+                                  "l'exercice N, ajusté par la trajectoire des ratios "
+                                  "(N comparé à la moyenne des exercices, ±5 pts par "
+                                  "catégorie). Moyenne des exercices : le score porte "
+                                  "sur la valeur moyenne de chaque ratio.")
 
-with h_pdf:
-    # Garde : au premier rendu qui suit l'analyse, "result" n'existe pas
-    # encore (il est calcule plus bas, section Resultats) - aucun
-    # bouton ce tour-ci, sans faire planter la page.
-    if st.session_state.analyse_faite and st.session_state.get("result") is not None:
-        # Telechargement en un clic : le PDF est calcule une seule fois
-        # par configuration (signature des donnees + profil), puis cache
-        import hashlib
-        import json as _json
+    with h_pdf:
+        # Garde : au premier rendu qui suit l'analyse, "result" n'existe pas
+        # encore (il est calcule plus bas, section Resultats) - aucun
+        # bouton ce tour-ci, sans faire planter la page.
+        if st.session_state.analyse_faite and st.session_state.get("result") is not None:
+            # Telechargement en un clic : le PDF est calcule une seule fois
+            # par configuration (signature des donnees + profil), puis cache
+            import hashlib
+            import json as _json
 
-        try:
-            _poids_pdf = ((PROFILS_EFFECTIFS.get(profil) or {})
-                          .get("poids_categories")) or {}
-        except Exception:
-            _poids_pdf = {}
-
-        # Medianes du secteur detecte (alignement PDF/dashboard : la
-        # colonne "Med. secteur" existe dans les deux)
-        _medianes_pdf = {}
-        _code_sect_pdf = ((st.session_state.result or {}).get("secteur_code"))
-        if _code_sect_pdf:
             try:
-                from src.scoring.sector_scorer import load_secteurs as _ls
-                _cfg_sect_pdf = (_ls().get(_code_sect_pdf) or {})
-                _medianes_pdf = {
-                    n: (r or {}).get("mediane")
-                    for n, r in (_cfg_sect_pdf.get("ratios") or {}).items()
-                }
+                _poids_pdf = ((PROFILS_EFFECTIFS.get(profil) or {})
+                              .get("poids_categories")) or {}
             except Exception:
-                _medianes_pdf = {}
+                _poids_pdf = {}
 
-        # Integralite des ratios configures : le tableau de detail du
-        # PDF affiche toutes les lignes comme le dashboard (n/d si non note)
-        _config_ratios_pdf = {}
-        try:
-            _cy = st.session_state.get("config_yaml") or {}
-            for _cat, _info in (_cy.get("categories") or {}).items():
-                for _nom in (_info.get("ratios_actifs") or []):
-                    _config_ratios_pdf[_nom] = {
-                        "categorie": _cat,
-                        "poids": ((_cy.get(_cat) or {}).get(_nom) or {}).get("poids", 0),
+            # Medianes du secteur detecte (alignement PDF/dashboard : la
+            # colonne "Med. secteur" existe dans les deux)
+            _medianes_pdf = {}
+            _code_sect_pdf = ((st.session_state.result or {}).get("secteur_code"))
+            if _code_sect_pdf:
+                try:
+                    from src.scoring.sector_scorer import load_secteurs as _ls
+                    _cfg_sect_pdf = (_ls().get(_code_sect_pdf) or {})
+                    _medianes_pdf = {
+                        n: (r or {}).get("mediane")
+                        for n, r in (_cfg_sect_pdf.get("ratios") or {}).items()
                     }
-        except Exception:
+                except Exception:
+                    _medianes_pdf = {}
+
+            # Integralite des ratios configures : le tableau de detail du
+            # PDF affiche toutes les lignes comme le dashboard (n/d si non note)
             _config_ratios_pdf = {}
-
-        # agregats par exercice : base de comparaison du mode moyenne
-        # (indicateurs cles du PDF) et element de la signature du cache
-        _bilans_ch = st.session_state.get("bilans_data", [])
-        _exs_ch = st.session_state.get("exercices", [])
-        _agg_ex_charge = {}
-        for _i, _bd in enumerate(_bilans_ch):
             try:
-                _an = (str(_exs_ch[_i].get("annee", f"N-{_i}"))
-                       if _i < len(_exs_ch) else f"N-{_i}")
-                _agg_ex_charge[_an] = Agregats(_bd).compute_all()
+                _cy = st.session_state.get("config_yaml") or {}
+                for _cat, _info in (_cy.get("categories") or {}).items():
+                    for _nom in (_info.get("ratios_actifs") or []):
+                        _config_ratios_pdf[_nom] = {
+                            "categorie": _cat,
+                            "poids": ((_cy.get(_cat) or {}).get(_nom) or {}).get("poids", 0),
+                        }
             except Exception:
-                pass
+                _config_ratios_pdf = {}
 
-        _charge = {
-            "result": st.session_state.result,
-            "agregats": st.session_state.agregats,
-            "validation": st.session_state.validation,
-            "alertes": st.session_state.alertes,
-            "nom": st.session_state.get("nom_entreprise"),
-            "secteur": (st.session_state.result or {}).get("secteur_label"),
-            "n_bilans": len(st.session_state.get("bilans_data", [])),
-            "poids": _poids_pdf,
-            # moyennes multi-exercices affichees dans le detail des
-            # ratios : une donnee qui change doit invalider le cache
-            "historique": st.session_state.get("historique", {}),
-            # medianes du secteur (colonne "Med. secteur" du PDF)
-            "medianes_secteur": _medianes_pdf,
-            # integralite des ratios configures au detail
-            "config_ratios": _config_ratios_pdf,
-            # agregats par exercice : comparaison du mode moyenne
-            "agregats_exercices": _agg_ex_charge,
-            # toute modification du code du rapport invalide le PDF en
-            # cache : on ne doit jamais re-servir un rapport obsolete
-            "rapport_mtime": max(
-                int(Path(str(ROOT / "src" / "reporting" / f)).stat().st_mtime)
-                for f in ("pdf_report.py", "synthese.py", "charts_pdf.py",
-                          "glossaire.py")),
-        }
-        _sig = hashlib.sha256(
-            _json.dumps(_charge, sort_keys=True, default=str,
-                        ensure_ascii=False).encode()).hexdigest()[:16]
+            # agregats par exercice : base de comparaison du mode moyenne
+            # (indicateurs cles du PDF) et element de la signature du cache
+            _bilans_ch = st.session_state.get("bilans_data", [])
+            _exs_ch = st.session_state.get("exercices", [])
+            _agg_ex_charge = {}
+            for _i, _bd in enumerate(_bilans_ch):
+                try:
+                    _an = (str(_exs_ch[_i].get("annee", f"N-{_i}"))
+                           if _i < len(_exs_ch) else f"N-{_i}")
+                    _agg_ex_charge[_an] = Agregats(_bd).compute_all()
+                except Exception:
+                    pass
 
-        _cache = st.session_state.get("pdf_cache") or {}
-        if _cache.get("sig") != _sig:
-            try:
-                _bilans = st.session_state.get("bilans_data", [])
-                _agg_n1 = (Agregats(_bilans[1]).compute_all()
-                           if len(_bilans) >= 2 else None)
-                _cache = {"sig": _sig, "bytes": generate_pdf_report(
-                    result=st.session_state.result,
-                    agregats=st.session_state.agregats,
-                    agregats_n1=_agg_n1,
-                    validation=st.session_state.validation,
-                    alertes=st.session_state.alertes,
-                    company_name=(st.session_state.get("nom_entreprise")
-                                  or "Entreprise analysee"),
-                    secteur_label=(st.session_state.result or {}).get("secteur_label"),
-                    poids_categories=_poids_pdf,
-                    historique=st.session_state.get("historique", {}),
-                    medianes_secteur=_medianes_pdf,
-                    config_ratios=_config_ratios_pdf,
-                    agregats_exercices=_agg_ex_charge,
-                )}
-                st.session_state.pdf_cache = _cache
-            except Exception as e:
-                st.error(f"L'export a echoue : {e}")
-                _cache = {"sig": _sig, "bytes": None}
-                st.session_state.pdf_cache = _cache
-        if _cache.get("bytes"):
-            # pas de type="primary" : le style primaire de Streamlit
-            # rend un indigo qui FONCE au survol - on style le bouton
-            # nous-memes (accent, survol qui eclaircit)
-            st.download_button(
-                "Télécharger le PDF", data=_cache["bytes"],
-                file_name="Rapport_Financier.pdf", mime="application/pdf",
-                use_container_width=True)
+            _charge = {
+                "result": st.session_state.result,
+                "agregats": st.session_state.agregats,
+                "validation": st.session_state.validation,
+                "alertes": st.session_state.alertes,
+                "nom": st.session_state.get("nom_entreprise"),
+                "secteur": (st.session_state.result or {}).get("secteur_label"),
+                "n_bilans": len(st.session_state.get("bilans_data", [])),
+                "poids": _poids_pdf,
+                # moyennes multi-exercices affichees dans le detail des
+                # ratios : une donnee qui change doit invalider le cache
+                "historique": st.session_state.get("historique", {}),
+                # medianes du secteur (colonne "Med. secteur" du PDF)
+                "medianes_secteur": _medianes_pdf,
+                # integralite des ratios configures au detail
+                "config_ratios": _config_ratios_pdf,
+                # agregats par exercice : comparaison du mode moyenne
+                "agregats_exercices": _agg_ex_charge,
+                # toute modification du code du rapport invalide le PDF en
+                # cache : on ne doit jamais re-servir un rapport obsolete
+                "rapport_mtime": max(
+                    int(Path(str(ROOT / "src" / "reporting" / f)).stat().st_mtime)
+                    for f in ("pdf_report.py", "synthese.py", "charts_pdf.py",
+                              "glossaire.py")),
+            }
+            _sig = hashlib.sha256(
+                _json.dumps(_charge, sort_keys=True, default=str,
+                            ensure_ascii=False).encode()).hexdigest()[:16]
+
+            _cache = st.session_state.get("pdf_cache") or {}
+            if _cache.get("sig") != _sig:
+                try:
+                    _bilans = st.session_state.get("bilans_data", [])
+                    _agg_n1 = (Agregats(_bilans[1]).compute_all()
+                               if len(_bilans) >= 2 else None)
+                    _cache = {"sig": _sig, "bytes": generate_pdf_report(
+                        result=st.session_state.result,
+                        agregats=st.session_state.agregats,
+                        agregats_n1=_agg_n1,
+                        validation=st.session_state.validation,
+                        alertes=st.session_state.alertes,
+                        company_name=(st.session_state.get("nom_entreprise")
+                                      or "Entreprise analysee"),
+                        secteur_label=(st.session_state.result or {}).get("secteur_label"),
+                        poids_categories=_poids_pdf,
+                        historique=st.session_state.get("historique", {}),
+                        medianes_secteur=_medianes_pdf,
+                        config_ratios=_config_ratios_pdf,
+                        agregats_exercices=_agg_ex_charge,
+                    )}
+                    st.session_state.pdf_cache = _cache
+                except Exception as e:
+                    st.error(f"L'export a echoue : {e}")
+                    _cache = {"sig": _sig, "bytes": None}
+                    st.session_state.pdf_cache = _cache
+            if _cache.get("bytes"):
+                # pas de type="primary" : le style primaire de Streamlit
+                # rend un indigo qui FONCE au survol - on style le bouton
+                # nous-memes (accent, survol qui eclaircit)
+                st.download_button(
+                    "Télécharger le PDF", data=_cache["bytes"],
+                    file_name="Rapport_Financier.pdf", mime="application/pdf",
+                    use_container_width=True)
 
 
 def _zone_import():
@@ -930,6 +932,7 @@ def afficher():
     """Point d'entree de la page Analyse."""
     injecter_analyse()
     _initialiser_session()
+    _entete()
     st.markdown("<div style='height:1.25rem'></div>", unsafe_allow_html=True)
     profil = "moyen_terme"
     fichiers = _zone_import()
